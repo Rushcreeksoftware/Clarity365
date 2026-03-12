@@ -33,7 +33,7 @@ export default function App() {
       <h2 style={{ marginTop: 0 }}>Clarity365 Dashboard ({mode})</h2>
       {setupCompleted ? (
         <>
-          <ActionBar />
+          <ActionBar mode={mode} />
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10, marginBottom: 12 }}>
             <KpiCard label="Revenue MTD" value={kpis.revenueMtd} />

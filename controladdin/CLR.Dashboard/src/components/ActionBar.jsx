@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import BC from '../bridge';
 
-export default function ActionBar() {
+export default function ActionBar({ mode }) {
   const [range, setRange] = useState('year-to-date');
   const [asOfDate, setAsOfDate] = useState('');
   const [glFilter, setGlFilter] = useState('');
   const [dimensionCode, setDimensionCode] = useState('');
   const [viewCode, setViewCode] = useState('DEFAULT');
+  const [currentMode, setCurrentMode] = useState((mode || 'bi').toLowerCase());
+
+  useEffect(() => {
+    setCurrentMode((mode || 'bi').toLowerCase());
+  }, [mode]);
 
   const applyFilters = () => {
     BC.sendToBC('FilterChanged', {
@@ -28,10 +33,12 @@ export default function ActionBar() {
       <input placeholder="GL Filter (e.g. 4*)" value={glFilter} onChange={(e) => setGlFilter(e.target.value)} />
       <input placeholder="Dimension Code" value={dimensionCode} onChange={(e) => setDimensionCode(e.target.value)} />
       <button onClick={applyFilters}>Apply Filters</button>
+      <button onClick={() => { setCurrentMode('bi'); BC.sendToBC('ModeChanged', 'bi'); }}>BI Mode</button>
+      <button onClick={() => { setCurrentMode('cashflow'); BC.sendToBC('ModeChanged', 'cashflow'); }}>Cash Flow Mode</button>
       <button onClick={() => BC.sendToBC('ScenarioRequested', 'BASE')}>Base Scenario</button>
       <button onClick={() => BC.sendToBC('ScenarioRequested', 'UPSIDE')}>Upside Scenario</button>
       <button onClick={() => BC.sendToBC('ScenarioRequested', 'DOWNSIDE')}>Downside Scenario</button>
-      <button onClick={() => BC.sendToBC('SaveViewRequested', { code: 'DEFAULT', description: 'Default View' })}>Save View</button>
+      <button onClick={() => BC.sendToBC('SaveViewRequested', { code: 'DEFAULT', description: 'Default View', mode: currentMode })}>Save View</button>
       <input placeholder="View Code" value={viewCode} onChange={(e) => setViewCode(e.target.value)} />
       <button onClick={() => BC.sendToBC('LoadViewRequested', viewCode || 'DEFAULT')}>Load View</button>
       <button onClick={() => BC.sendToBC('ExportRequested', 'excel')}>Export Excel</button>

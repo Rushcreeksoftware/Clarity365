@@ -84,6 +84,8 @@
       '    <input id="clr-glfilter" placeholder="GL Filter (e.g. 4*)" />' +
       '    <input id="clr-dimcode" placeholder="Dimension Code" />' +
       '    <button id="clr-apply-filter">Apply Filters</button>' +
+      '    <button id="clr-mode-bi">BI Mode</button>' +
+      '    <button id="clr-mode-cf">Cash Flow Mode</button>' +
       '    <button id="clr-base">Base</button>' +
       '    <button id="clr-upside">Upside</button>' +
       '    <button id="clr-downside">Downside</button>' +
@@ -117,10 +119,12 @@
         dimensionCode: document.getElementById('clr-dimcode').value || ''
       });
     };
+    document.getElementById('clr-mode-bi').onclick = function () { state.mode = 'bi'; invoke('ModeChanged', 'bi'); render(); };
+    document.getElementById('clr-mode-cf').onclick = function () { state.mode = 'cashflow'; invoke('ModeChanged', 'cashflow'); render(); };
     document.getElementById('clr-base').onclick = function () { invoke('ScenarioRequested', 'BASE'); };
     document.getElementById('clr-upside').onclick = function () { invoke('ScenarioRequested', 'UPSIDE'); };
     document.getElementById('clr-downside').onclick = function () { invoke('ScenarioRequested', 'DOWNSIDE'); };
-    document.getElementById('clr-save-view').onclick = function () { invoke('SaveViewRequested', { code: 'DEFAULT', description: 'Default View' }); };
+    document.getElementById('clr-save-view').onclick = function () { invoke('SaveViewRequested', { code: 'DEFAULT', description: 'Default View', mode: state.mode || 'bi' }); };
     document.getElementById('clr-load-view').onclick = function () { invoke('LoadViewRequested', document.getElementById('clr-viewcode').value || 'DEFAULT'); };
     document.getElementById('clr-export').onclick = function () { invoke('ExportRequested', 'excel'); };
     document.getElementById('clr-export-pdf').onclick = function () { invoke('ExportRequested', 'pdf'); };

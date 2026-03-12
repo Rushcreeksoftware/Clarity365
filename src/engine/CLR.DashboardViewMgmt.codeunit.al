@@ -1,11 +1,18 @@
 codeunit 50307 "CLR Dashboard View Mgmt"
 {
     procedure SaveView(ViewCode: Code[20]; Description: Text[100])
+    begin
+        SaveViewWithMode(ViewCode, Description, 'bi');
+    end;
+
+    procedure SaveViewWithMode(ViewCode: Code[20]; Description: Text[100]; Mode: Text[20])
     var
         DashboardView: Record "CLR Dashboard View";
     begin
         if DashboardView.Get(ViewCode) then begin
             DashboardView.Description := Description;
+            if Mode <> '' then
+                DashboardView.Mode := CopyStr(LowerCase(Mode), 1, MaxStrLen(DashboardView.Mode));
             DashboardView.Modify(true);
             exit;
         end;
@@ -14,12 +21,20 @@ codeunit 50307 "CLR Dashboard View Mgmt"
         DashboardView.Code := ViewCode;
         DashboardView.Description := Description;
         DashboardView."User ID" := CopyStr(UserId(), 1, MaxStrLen(DashboardView."User ID"));
-        DashboardView.Mode := 'bi';
+        if Mode = '' then
+            DashboardView.Mode := 'bi'
+        else
+            DashboardView.Mode := CopyStr(LowerCase(Mode), 1, MaxStrLen(DashboardView.Mode));
         DashboardView."Created DateTime" := CurrentDateTime();
         DashboardView.Insert(true);
     end;
 
     procedure SaveViewFromPayload(ViewCode: Code[20]; Description: Text[100]; ViewJson: Text)
+    begin
+        SaveViewFromPayloadWithMode(ViewCode, Description, ViewJson, 'bi');
+    end;
+
+    procedure SaveViewFromPayloadWithMode(ViewCode: Code[20]; Description: Text[100]; ViewJson: Text; Mode: Text[20])
     var
         DashboardViewFilter: Record "CLR Dashboard View Filter";
         Payload: JsonObject;
@@ -27,7 +42,7 @@ codeunit 50307 "CLR Dashboard View Mgmt"
         NextLineNo: Integer;
         RangeText: Text;
     begin
-        SaveView(ViewCode, Description);
+        SaveViewWithMode(ViewCode, Description, Mode);
 
         DashboardViewFilter.SetRange("View Code", ViewCode);
         if not DashboardViewFilter.IsEmpty() then
@@ -58,6 +73,23 @@ codeunit 50307 "CLR Dashboard View Mgmt"
             InsertFilterLine(ViewCode, NextLineNo, 'dimensionCode', Token.AsValue().AsText());
             NextLineNo += 10000;
         end;
+    end;
+
+    procedure TryGetViewMode(ViewCode: Code[20]; var ViewMode: Text[20]): Boolean
+    var
+        DashboardView: Record "CLR Dashboard View";
+    begin
+        ViewMode := '';
+        if not DashboardView.Get(ViewCode) then
+            exit(false);
+
+        if not CanUserAccessView(DashboardView) then
+            exit(false);
+
+        ViewMode := CopyStr(LowerCase(DashboardView.Mode), 1, MaxStrLen(ViewMode));
+        if ViewMode = '' then
+            ViewMode := 'bi';
+        exit(true);
     end;
 
     procedure TryBuildFilterPayload(ViewCode: Code[20]; var FilterJson: Text): Boolean

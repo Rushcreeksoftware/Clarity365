@@ -146,4 +146,22 @@ codeunit 50344 "CLR ProviderTests"
         if not ViewMgt.CanCurrentUserAccessView('UTACCESS') then
             Error('Expected current user to access own view.');
     end;
+
+    [Test]
+    procedure DashboardViewMgmtPersistsAndReturnsViewMode()
+    var
+        ViewMgt: Codeunit "CLR Dashboard View Mgmt";
+        ViewMode: Text[20];
+    begin
+        // GIVEN
+        ViewMgt.SaveViewWithMode('UTMODE', 'Mode View', 'cashflow');
+
+        // WHEN
+        if not ViewMgt.TryGetViewMode('UTMODE', ViewMode) then
+            Error('Expected to retrieve saved view mode.');
+
+        // THEN
+        if ViewMode <> 'cashflow' then
+            Error('Expected saved view mode to be cashflow.');
+    end;
 }

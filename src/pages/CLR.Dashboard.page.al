@@ -17,14 +17,19 @@ page 50250 "CLR Dashboard"
                 var
                     ViewMgt: Codeunit "CLR Dashboard View Mgmt";
                     LoadedFilterJson: Text;
+                    LoadedMode: Text[20];
                 begin
                     CurrentScenarioCode := 'BASE';
+                    CurrentMode := 'bi';
                     CurrentFilterJson := '';
                     if ViewMgt.TryBuildFilterPayload('DEFAULT', LoadedFilterJson) then
                         CurrentFilterJson := LoadedFilterJson;
 
+                    if ViewMgt.TryGetViewMode('DEFAULT', LoadedMode) then
+                        CurrentMode := LoadedMode;
+
                     RefreshDashboard();
-                    CurrPage.Dashboard.SetMode('bi');
+                    CurrPage.Dashboard.SetMode(CurrentMode);
                 end;
 
                 trigger SetupRequested()
@@ -36,6 +41,15 @@ page 50250 "CLR Dashboard"
                 begin
                     CurrentFilterJson := FilterJson;
                     RefreshDashboard();
+                end;
+
+                trigger ModeChanged(Mode: Text)
+                begin
+                    if Mode = '' then
+                        exit;
+
+                    CurrentMode := CopyStr(LowerCase(Mode), 1, MaxStrLen(CurrentMode));
+                    CurrPage.Dashboard.SetMode(CurrentMode);
                 end;
 
                 trigger ScenarioRequested(ScenarioCode: Text)
@@ -64,20 +78,24 @@ page 50250 "CLR Dashboard"
                     ViewMgt: Codeunit "CLR Dashboard View Mgmt";
                     ViewCode: Code[20];
                     ViewDescription: Text[100];
+                    ViewMode: Text[20];
                     Payload: JsonObject;
                     Token: JsonToken;
                 begin
                     ViewCode := 'DEFAULT';
                     ViewDescription := 'Saved dashboard view';
+                    ViewMode := CurrentMode;
 
                     if Payload.ReadFrom(ViewJson) then begin
                         if Payload.Get('code', Token) then
                             ViewCode := CopyStr(Token.AsValue().AsText(), 1, MaxStrLen(ViewCode));
                         if Payload.Get('description', Token) then
                             ViewDescription := CopyStr(Token.AsValue().AsText(), 1, MaxStrLen(ViewDescription));
+                        if Payload.Get('mode', Token) then
+                            ViewMode := CopyStr(LowerCase(Token.AsValue().AsText()), 1, MaxStrLen(ViewMode));
                     end;
 
-                    ViewMgt.SaveViewFromPayload(ViewCode, ViewDescription, CurrentFilterJson);
+                    ViewMgt.SaveViewFromPayloadWithMode(ViewCode, ViewDescription, CurrentFilterJson, ViewMode);
                     RefreshDashboard();
                 end;
 
@@ -125,6 +143,7 @@ page 50250 "CLR Dashboard"
     var
         CurrentFilterJson: Text;
         CurrentScenarioCode: Code[20];
+        CurrentMode: Text[20];
 
     local procedure RefreshDashboard()
     var
@@ -152,6 +171,7 @@ page 50250 "CLR Dashboard"
     var
         ViewMgt: Codeunit "CLR Dashboard View Mgmt";
         LoadedFilterJson: Text;
+        LoadedMode: Text[20];
     begin
         if ViewCode = '' then
             exit;
@@ -163,6 +183,12 @@ page 50250 "CLR Dashboard"
             Error('Saved view %1 does not contain any filters.', ViewCode);
 
         CurrentFilterJson := LoadedFilterJson;
+
+        if ViewMgt.TryGetViewMode(ViewCode, LoadedMode) then begin
+            CurrentMode := LoadedMode;
+            CurrPage.Dashboard.SetMode(CurrentMode);
+        end;
+
         RefreshDashboard();
     end;
 
