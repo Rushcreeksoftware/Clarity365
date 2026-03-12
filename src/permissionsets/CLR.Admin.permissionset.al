@@ -24,6 +24,7 @@ permissionset 50390 "CLR Admin"
         table "CLR Manual CF Entry" = X,
         table "CLR Error Log" = X,
         table "CLR Export Log" = X,
+        page "CLR Role Center" = X,
         page "CLR Dashboard" = X,
         page "CLR CF Scenario List" = X,
         page "CLR CF Scenario Card" = X,

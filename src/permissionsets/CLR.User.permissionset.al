@@ -22,6 +22,7 @@ permissionset 50391 "CLR User"
         table "CLR CF Projection Line" = X,
         table "CLR Manual CF Entry" = X,
         table "CLR Export Log" = X,
+        page "CLR Role Center" = X,
         page "CLR Dashboard" = X,
         page "CLR CF Scenario List" = X,
         page "CLR CF Scenario Card" = X,
