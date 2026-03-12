@@ -37,6 +37,7 @@ permissionset 50391 "CLR User"
         codeunit "CLR BI Engine" = X,
         codeunit "CLR Export Mgmt" = X,
         codeunit "CLR Cf Forecast Engine" = X,
+        codeunit "CLR Forecast Job Runner" = X,
         report "CLR Dashboard Summary" = X,
         codeunit "CLR Dashboard View Mgmt" = X;
 }

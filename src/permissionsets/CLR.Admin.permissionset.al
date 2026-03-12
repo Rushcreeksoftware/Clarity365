@@ -46,6 +46,7 @@ permissionset 50390 "CLR Admin"
         codeunit "CLR Cf Scenario Mgmt" = X,
         codeunit "CLR Dashboard View Mgmt" = X,
         codeunit "CLR Setup Wizard Mgmt" = X,
+        codeunit "CLR Forecast Job Runner" = X,
         report "CLR Dashboard Summary" = X,
         codeunit "CLR Install" = X;
 }

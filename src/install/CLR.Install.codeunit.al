@@ -17,5 +17,25 @@ codeunit 50349 "CLR Install"
         end;
 
         ScenarioMgt.EnsureBaseScenario();
+        EnsureForecastRefreshJobQueueEntry();
+    end;
+
+    local procedure EnsureForecastRefreshJobQueueEntry()
+    var
+        JobQueueEntry: Record "Job Queue Entry";
+    begin
+        JobQueueEntry.SetRange("Object Type to Run", JobQueueEntry."Object Type to Run"::Codeunit);
+        JobQueueEntry.SetRange("Object ID to Run", Codeunit::"CLR Forecast Job Runner");
+        if JobQueueEntry.FindFirst() then
+            exit;
+
+        JobQueueEntry.Init();
+        JobQueueEntry.Validate("Object Type to Run", JobQueueEntry."Object Type to Run"::Codeunit);
+        JobQueueEntry.Validate("Object ID to Run", Codeunit::"CLR Forecast Job Runner");
+        JobQueueEntry.Validate(Description, 'Clarity Forecast Refresh');
+        JobQueueEntry.Validate("Recurring Job", true);
+        JobQueueEntry.Validate("No. of Minutes between Runs", 1440);
+        JobQueueEntry.Validate("Earliest Start Date/Time", CurrentDateTime());
+        JobQueueEntry.Insert(true);
     end;
 }

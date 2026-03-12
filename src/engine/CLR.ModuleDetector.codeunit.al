@@ -22,22 +22,26 @@ codeunit 50303 "CLR Module Detector"
         JobLedgerEntry: Record "Job Ledger Entry";
         FALedgerEntry: Record "FA Ledger Entry";
         ServiceLedgerEntry: Record "Service Ledger Entry";
+        EmployeeLedgerEntry: Record "Employee Ledger Entry";
         ProductionOrder: Record "Production Order";
         ModuleCsv: Text;
     begin
         EnsureSetup(Setup);
 
         JobLedgerEntry.Reset();
-        Setup."Show Jobs Module" := JobLedgerEntry.Count() > 0;
+        Setup."Show Jobs Module" := not JobLedgerEntry.IsEmpty();
 
         FALedgerEntry.Reset();
-        Setup."Show FA Module" := FALedgerEntry.Count() > 0;
+        Setup."Show FA Module" := not FALedgerEntry.IsEmpty();
 
         ServiceLedgerEntry.Reset();
-        Setup."Show Service Module" := ServiceLedgerEntry.Count() > 0;
+        Setup."Show Service Module" := not ServiceLedgerEntry.IsEmpty();
+
+        EmployeeLedgerEntry.Reset();
+        Setup."Show HR Module" := not EmployeeLedgerEntry.IsEmpty();
 
         ProductionOrder.Reset();
-        Setup."Show Manufacturing Module" := ProductionOrder.Count() > 0;
+        Setup."Show Manufacturing Module" := not ProductionOrder.IsEmpty();
 
         Setup."Show Purchasing Module" := true;
         Setup.Modify(true);
@@ -49,6 +53,8 @@ codeunit 50303 "CLR Module Detector"
             ModuleCsv := ModuleCsv + ',FixedAssets';
         if Setup."Show Service Module" then
             ModuleCsv := ModuleCsv + ',Service';
+        if Setup."Show HR Module" then
+            ModuleCsv := ModuleCsv + ',HR';
         if Setup."Show Manufacturing Module" then
             ModuleCsv := ModuleCsv + ',Manufacturing';
 
