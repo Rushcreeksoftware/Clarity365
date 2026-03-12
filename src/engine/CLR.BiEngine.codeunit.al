@@ -38,8 +38,10 @@ codeunit 50304 "CLR BI Engine"
         Purchasing: JsonArray;
         MrrSeries: JsonArray;
         CashFlow: JsonArray;
-        RevenueObj: JsonObject;
         Scenarios: JsonObject;
+        HasBaseScenario: Boolean;
+        HasUpsideScenario: Boolean;
+        HasDownsideScenario: Boolean;
     begin
         Provider := ProviderFactory.GetProvider();
 
@@ -90,15 +92,15 @@ codeunit 50304 "CLR BI Engine"
 
         MetricBuffer.DeleteAll();
         Provider.GetPayrollMetrics(FromDate, AsOfDate, MetricBuffer);
-        BuildAmountSeries(MetricBuffer, Payroll, 'PAYROLL_TOTAL', 'amount');
+        BuildPayrollTrend(Provider, Setup, Payroll);
 
         MetricBuffer.DeleteAll();
         Provider.GetServiceMetrics(FromDate, AsOfDate, MetricBuffer);
-        BuildServiceArray(MetricBuffer, Service, AsOfDate);
+        BuildServiceTrend(Provider, Service, AsOfDate);
 
         MetricBuffer.DeleteAll();
         Provider.GetManufacturingMetrics(FromDate, AsOfDate, MetricBuffer);
-        BuildMfgArrayFromMetric(MetricBuffer, Mfg, 'MFG_ENTRY_COUNT');
+        BuildManufacturingTrend(Provider, Mfg, AsOfDate);
 
         MetricBuffer.DeleteAll();
         Provider.GetInventoryValuation(AsOfDate, MetricBuffer);
@@ -106,9 +108,9 @@ codeunit 50304 "CLR BI Engine"
 
         MetricBuffer.DeleteAll();
         Provider.GetPurchaseMetrics(FromDate, AsOfDate, MetricBuffer);
-        BuildPurchasingArray(MetricBuffer, Purchasing);
+        BuildPurchasingTrend(Provider, Purchasing, AsOfDate);
 
-        BuildMrrArray(MrrSeries, MrrAmount, AsOfDate);
+        BuildMrrTrend(Provider, MrrSeries, AsOfDate);
 
         if RevenueAmount <> 0 then
             GrossMarginPct := Round((GrossMarginAmount / RevenueAmount) * 100, 0.01)
@@ -136,9 +138,11 @@ codeunit 50304 "CLR BI Engine"
         Kpis.Add('mrrTrend', MrrTrendPct);
 
         BuildRevenueTrend(Provider, Setup, Revenue);
-        BuildPayrollTrend(Provider, Setup, Payroll);
-        BuildMrrTrend(Provider, MrrSeries, AsOfDate);
         BuildCashFlowArray(CashFlow, AsOfDate);
+
+        HasBaseScenario := ScenarioHasData('BASE');
+        HasUpsideScenario := ScenarioHasData('UPSIDE');
+        HasDownsideScenario := ScenarioHasData('DOWNSIDE');
 
         Payload.Add('kpis', Kpis);
         Payload.Add('revenue', Revenue);
@@ -154,9 +158,9 @@ codeunit 50304 "CLR BI Engine"
         Payload.Add('purchasing', Purchasing);
         Payload.Add('mrr', MrrSeries);
         Payload.Add('cashFlow', CashFlow);
-        Scenarios.Add('base', true);
-        Scenarios.Add('upside', false);
-        Scenarios.Add('downside', false);
+        Scenarios.Add('base', HasBaseScenario);
+        Scenarios.Add('upside', HasUpsideScenario);
+        Scenarios.Add('downside', HasDownsideScenario);
         Payload.Add('scenarios', Scenarios);
 
         Payload.WriteTo(JsonText);
@@ -226,20 +230,6 @@ codeunit 50304 "CLR BI Engine"
             until MetricBuffer.Next() = 0;
     end;
 
-    local procedure BuildAmountSeries(var MetricBuffer: Record "CLR BI Metric Buffer" temporary; var SeriesArray: JsonArray; MetricCode: Code[50]; AmountFieldName: Text)
-    var
-        SeriesObj: JsonObject;
-        AmountValue: Decimal;
-    begin
-        AmountValue := GetMetricAmount(MetricBuffer, MetricCode);
-        if AmountValue = 0 then
-            exit;
-
-        SeriesObj.Add('date', Format(CalcDate('<CM>', Today()), 0, 9));
-        SeriesObj.Add(AmountFieldName, AmountValue);
-        SeriesArray.Add(SeriesObj);
-    end;
-
     local procedure BuildJobArray(var MetricBuffer: Record "CLR BI Metric Buffer" temporary; var JobsArray: JsonArray)
     var
         JobObj: JsonObject;
@@ -286,49 +276,6 @@ codeunit 50304 "CLR BI Engine"
         FaArray.Add(FaObj);
     end;
 
-    local procedure BuildServiceArray(var MetricBuffer: Record "CLR BI Metric Buffer" temporary; var ServiceArray: JsonArray; AsOfDate: Date)
-    var
-        ServiceObj: JsonObject;
-        EntryCount: Decimal;
-        RevenueValue: Decimal;
-        CostValue: Decimal;
-    begin
-        EntryCount := GetMetricAmount(MetricBuffer, 'SERVICE_ENTRY_COUNT');
-        RevenueValue := GetMetricAmount(MetricBuffer, 'SERVICE_REVENUE');
-        CostValue := GetMetricAmount(MetricBuffer, 'SERVICE_COST');
-
-        if (EntryCount = 0) and (RevenueValue = 0) and (CostValue = 0) then
-            exit;
-
-        if RevenueValue = 0 then
-            RevenueValue := EntryCount;
-
-        ServiceObj.Add('date', Format(CalcDate('<CM>', AsOfDate), 0, 9));
-        ServiceObj.Add('revenue', RevenueValue);
-        ServiceObj.Add('cost', CostValue);
-        ServiceObj.Add('margin', RevenueValue - CostValue);
-        ServiceArray.Add(ServiceObj);
-    end;
-
-    local procedure BuildMfgArrayFromMetric(var MetricBuffer: Record "CLR BI Metric Buffer" temporary; var MfgArray: JsonArray; MetricCode: Code[50])
-    var
-        MfgObj: JsonObject;
-        OutputValue: Decimal;
-        MaterialCost: Decimal;
-    begin
-        OutputValue := GetMetricAmount(MetricBuffer, 'MFG_OUTPUT_VALUE');
-        MaterialCost := GetMetricAmount(MetricBuffer, 'MFG_MATERIAL_COST');
-        if (OutputValue = 0) and (MaterialCost = 0) then
-            exit;
-
-        MfgObj.Add('date', Format(CalcDate('<CM>', Today()), 0, 9));
-        MfgObj.Add('materialCost', MaterialCost);
-        MfgObj.Add('capacityCost', 0);
-        MfgObj.Add('outputValue', OutputValue);
-        MfgObj.Add('variance', OutputValue - MaterialCost);
-        MfgArray.Add(MfgObj);
-    end;
-
     local procedure BuildInventoryArray(var MetricBuffer: Record "CLR BI Metric Buffer" temporary; var InventoryArray: JsonArray)
     var
         InventoryObj: JsonObject;
@@ -341,35 +288,6 @@ codeunit 50304 "CLR BI Engine"
         InventoryObj.Add('category', 'Total Inventory');
         InventoryObj.Add('value', InventoryValue);
         InventoryArray.Add(InventoryObj);
-    end;
-
-    local procedure BuildPurchasingArray(var MetricBuffer: Record "CLR BI Metric Buffer" temporary; var PurchasingArray: JsonArray)
-    var
-        PurchasingObj: JsonObject;
-        EntryCount: Decimal;
-        SpendAmount: Decimal;
-    begin
-        EntryCount := GetMetricAmount(MetricBuffer, 'PURCHASE_ENTRY_COUNT');
-        SpendAmount := GetMetricAmount(MetricBuffer, 'PURCHASE_SPEND');
-        if (EntryCount = 0) and (SpendAmount = 0) then
-            exit;
-
-        PurchasingObj.Add('date', Format(CalcDate('<CM>', Today()), 0, 9));
-        PurchasingObj.Add('spend', SpendAmount);
-        PurchasingObj.Add('vendorCount', EntryCount);
-        PurchasingArray.Add(PurchasingObj);
-    end;
-
-    local procedure BuildMrrArray(var MrrArray: JsonArray; MrrAmount: Decimal; AsOfDate: Date)
-    var
-        MrrObj: JsonObject;
-    begin
-        if MrrAmount = 0 then
-            exit;
-
-        MrrObj.Add('date', Format(CalcDate('<CM>', AsOfDate), 0, 9));
-        MrrObj.Add('amount', MrrAmount);
-        MrrArray.Add(MrrObj);
     end;
 
     local procedure BuildRevenueTrend(Provider: Interface "CLR IDataProvider"; Setup: Record "CLR Data Provider Setup"; var RevenueArray: JsonArray)
@@ -426,6 +344,106 @@ codeunit 50304 "CLR BI Engine"
         end;
     end;
 
+    local procedure BuildServiceTrend(Provider: Interface "CLR IDataProvider"; var ServiceArray: JsonArray; AsOfDate: Date)
+    var
+        MonthOffset: Integer;
+        PeriodStart: Date;
+        PeriodEnd: Date;
+        MetricBuffer: Record "CLR BI Metric Buffer" temporary;
+        ServiceObj: JsonObject;
+        RevenueValue: Decimal;
+        CostValue: Decimal;
+        EntryCount: Decimal;
+    begin
+        for MonthOffset := 5 downto 0 do begin
+            PeriodStart := CalcDate(StrSubstNo('<CM-%1M>', MonthOffset), AsOfDate);
+            PeriodEnd := CalcDate('<CM+1M-1D>', PeriodStart);
+
+            MetricBuffer.DeleteAll();
+            Provider.GetServiceMetrics(PeriodStart, PeriodEnd, MetricBuffer);
+            RevenueValue := GetMetricAmount(MetricBuffer, 'SERVICE_REVENUE');
+            CostValue := GetMetricAmount(MetricBuffer, 'SERVICE_COST');
+            EntryCount := GetMetricAmount(MetricBuffer, 'SERVICE_ENTRY_COUNT');
+            if (RevenueValue = 0) and (CostValue = 0) and (EntryCount = 0) then
+                continue;
+
+            if RevenueValue = 0 then
+                RevenueValue := EntryCount;
+
+            ServiceObj.Add('date', Format(PeriodStart, 0, 9));
+            ServiceObj.Add('revenue', RevenueValue);
+            ServiceObj.Add('cost', CostValue);
+            ServiceObj.Add('margin', RevenueValue - CostValue);
+            ServiceArray.Add(ServiceObj);
+            Clear(ServiceObj);
+        end;
+    end;
+
+    local procedure BuildManufacturingTrend(Provider: Interface "CLR IDataProvider"; var MfgArray: JsonArray; AsOfDate: Date)
+    var
+        MonthOffset: Integer;
+        PeriodStart: Date;
+        PeriodEnd: Date;
+        MetricBuffer: Record "CLR BI Metric Buffer" temporary;
+        MfgObj: JsonObject;
+        OutputValue: Decimal;
+        MaterialCost: Decimal;
+        EntryCount: Decimal;
+    begin
+        for MonthOffset := 5 downto 0 do begin
+            PeriodStart := CalcDate(StrSubstNo('<CM-%1M>', MonthOffset), AsOfDate);
+            PeriodEnd := CalcDate('<CM+1M-1D>', PeriodStart);
+
+            MetricBuffer.DeleteAll();
+            Provider.GetManufacturingMetrics(PeriodStart, PeriodEnd, MetricBuffer);
+            OutputValue := GetMetricAmount(MetricBuffer, 'MFG_OUTPUT_VALUE');
+            MaterialCost := GetMetricAmount(MetricBuffer, 'MFG_MATERIAL_COST');
+            EntryCount := GetMetricAmount(MetricBuffer, 'MFG_ENTRY_COUNT');
+            if (OutputValue = 0) and (MaterialCost = 0) and (EntryCount = 0) then
+                continue;
+
+            if OutputValue = 0 then
+                OutputValue := EntryCount;
+
+            MfgObj.Add('date', Format(PeriodStart, 0, 9));
+            MfgObj.Add('materialCost', MaterialCost);
+            MfgObj.Add('capacityCost', 0);
+            MfgObj.Add('outputValue', OutputValue);
+            MfgObj.Add('variance', OutputValue - MaterialCost);
+            MfgArray.Add(MfgObj);
+            Clear(MfgObj);
+        end;
+    end;
+
+    local procedure BuildPurchasingTrend(Provider: Interface "CLR IDataProvider"; var PurchasingArray: JsonArray; AsOfDate: Date)
+    var
+        MonthOffset: Integer;
+        PeriodStart: Date;
+        PeriodEnd: Date;
+        MetricBuffer: Record "CLR BI Metric Buffer" temporary;
+        PurchasingObj: JsonObject;
+        SpendAmount: Decimal;
+        EntryCount: Decimal;
+    begin
+        for MonthOffset := 5 downto 0 do begin
+            PeriodStart := CalcDate(StrSubstNo('<CM-%1M>', MonthOffset), AsOfDate);
+            PeriodEnd := CalcDate('<CM+1M-1D>', PeriodStart);
+
+            MetricBuffer.DeleteAll();
+            Provider.GetPurchaseMetrics(PeriodStart, PeriodEnd, MetricBuffer);
+            SpendAmount := GetMetricAmount(MetricBuffer, 'PURCHASE_SPEND');
+            EntryCount := GetMetricAmount(MetricBuffer, 'PURCHASE_ENTRY_COUNT');
+            if (SpendAmount = 0) and (EntryCount = 0) then
+                continue;
+
+            PurchasingObj.Add('date', Format(PeriodStart, 0, 9));
+            PurchasingObj.Add('spend', SpendAmount);
+            PurchasingObj.Add('vendorCount', EntryCount);
+            PurchasingArray.Add(PurchasingObj);
+            Clear(PurchasingObj);
+        end;
+    end;
+
     local procedure BuildMrrTrend(Provider: Interface "CLR IDataProvider"; var MrrArray: JsonArray; AsOfDate: Date)
     var
         MonthOffset: Integer;
@@ -452,29 +470,34 @@ codeunit 50304 "CLR BI Engine"
 
     local procedure BuildCashFlowArray(var CashFlowArray: JsonArray; AsOfDate: Date)
     var
-        ProjectionLine: Record "CLR CF Projection Line";
+        MonthOffset: Integer;
+        MonthStart: Date;
+        MonthEnd: Date;
         CashFlowObj: JsonObject;
-        RowCount: Integer;
+        Inflows: Decimal;
+        Outflows: Decimal;
+        BaseCumulative: Decimal;
+        UpsideCumulative: Decimal;
+        DownsideCumulative: Decimal;
     begin
-        ProjectionLine.Reset();
-        ProjectionLine.SetRange("Scenario Code", 'BASE');
-        ProjectionLine.SetFilter("Projection Date", '>=%1', AsOfDate);
-        ProjectionLine.SetCurrentKey("Projection Date", "Scenario Code");
-        if ProjectionLine.FindSet() then
-            repeat
-                CashFlowObj.Add('date', Format(ProjectionLine."Projection Date", 0, 9));
-                CashFlowObj.Add('inflows', ProjectionLine.Amount);
-                CashFlowObj.Add('outflows', 0);
-                CashFlowObj.Add('base', ProjectionLine."Cumulative Cash");
-                CashFlowObj.Add('upside', 0);
-                CashFlowObj.Add('downside', 0);
-                CashFlowArray.Add(CashFlowObj);
-                Clear(CashFlowObj);
+        for MonthOffset := 0 to 5 do begin
+            MonthStart := CalcDate(StrSubstNo('<CM+%1M>', MonthOffset), AsOfDate);
+            MonthEnd := CalcDate('<CM+1M-1D>', MonthStart);
 
-                RowCount += 1;
-                if RowCount >= 6 then
-                    exit;
-            until ProjectionLine.Next() = 0;
+            SumScenarioFlows('BASE', MonthStart, MonthEnd, Inflows, Outflows);
+            BaseCumulative := GetScenarioCumulativeAtDate('BASE', MonthEnd);
+            UpsideCumulative := GetScenarioCumulativeAtDate('UPSIDE', MonthEnd);
+            DownsideCumulative := GetScenarioCumulativeAtDate('DOWNSIDE', MonthEnd);
+
+            CashFlowObj.Add('date', Format(MonthStart, 0, 9));
+            CashFlowObj.Add('inflows', Inflows);
+            CashFlowObj.Add('outflows', Outflows);
+            CashFlowObj.Add('base', BaseCumulative);
+            CashFlowObj.Add('upside', UpsideCumulative);
+            CashFlowObj.Add('downside', DownsideCumulative);
+            CashFlowArray.Add(CashFlowObj);
+            Clear(CashFlowObj);
+        end;
     end;
 
     local procedure CalculateTrendPct(PreviousValue: Decimal; CurrentValue: Decimal): Decimal
@@ -483,5 +506,57 @@ codeunit 50304 "CLR BI Engine"
             exit(0);
 
         exit(Round(((CurrentValue - PreviousValue) / PreviousValue) * 100, 0.01));
+    end;
+
+    local procedure SumScenarioFlows(ScenarioCode: Code[20]; FromDate: Date; ToDate: Date; var Inflows: Decimal; var Outflows: Decimal)
+    var
+        ProjectionLine: Record "CLR CF Projection Line";
+    begin
+        Inflows := 0;
+        Outflows := 0;
+
+        ProjectionLine.SetRange("Scenario Code", ScenarioCode);
+        ProjectionLine.SetRange("Projection Date", FromDate, ToDate);
+        if ProjectionLine.FindSet() then
+            repeat
+                if IsOutflowCategory(ProjectionLine.Category) then
+                    Outflows += ProjectionLine.Amount
+                else
+                    Inflows += ProjectionLine.Amount;
+            until ProjectionLine.Next() = 0;
+    end;
+
+    local procedure GetScenarioCumulativeAtDate(ScenarioCode: Code[20]; AtDate: Date): Decimal
+    var
+        ProjectionLine: Record "CLR CF Projection Line";
+    begin
+        ProjectionLine.SetRange("Scenario Code", ScenarioCode);
+        ProjectionLine.SetRange("Projection Date", 0D, AtDate);
+        if ProjectionLine.FindLast() then
+            exit(ProjectionLine."Cumulative Cash");
+
+        exit(0);
+    end;
+
+    local procedure IsOutflowCategory(LineCategory: Enum "CLR CF Line Category"): Boolean
+    begin
+        case LineCategory of
+            LineCategory::APPayment,
+            LineCategory::Payroll,
+            LineCategory::CapEx,
+            LineCategory::OneOffPayment,
+            LineCategory::TaxPayment:
+                exit(true);
+        end;
+
+        exit(false);
+    end;
+
+    local procedure ScenarioHasData(ScenarioCode: Code[20]): Boolean
+    var
+        ProjectionLine: Record "CLR CF Projection Line";
+    begin
+        ProjectionLine.SetRange("Scenario Code", ScenarioCode);
+        exit(not ProjectionLine.IsEmpty());
     end;
 }
