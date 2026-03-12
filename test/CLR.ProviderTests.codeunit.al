@@ -57,4 +57,24 @@ codeunit 50344 "CLR ProviderTests"
         if StrPos(SummaryText, 'Scenario: UPSIDE') = 0 then
             Error('Expected scenario value in export summary preview.');
     end;
+
+    [Test]
+    procedure DashboardViewMgmtPersistsFilterPayload()
+    var
+        ViewMgt: Codeunit "CLR Dashboard View Mgmt";
+        ViewFilter: Record "CLR Dashboard View Filter";
+    begin
+        // GIVEN
+        ViewFilter.SetRange("View Code", 'UTVIEW');
+        if not ViewFilter.IsEmpty() then
+            ViewFilter.DeleteAll();
+
+        // WHEN
+        ViewMgt.SaveViewFromPayload('UTVIEW', 'Unit Test View', '{"range":"last-30-days","glFilter":"4*","dimensionCode":"DEPARTMENT"}');
+
+        // THEN
+        ViewFilter.SetRange("View Code", 'UTVIEW');
+        if ViewFilter.Count() = 0 then
+            Error('Expected saved view filters for UTVIEW.');
+    end;
 }

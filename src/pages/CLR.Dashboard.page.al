@@ -68,7 +68,7 @@ page 50250 "CLR Dashboard"
                             ViewDescription := CopyStr(Token.AsValue().AsText(), 1, MaxStrLen(ViewDescription));
                     end;
 
-                    ViewMgt.SaveView(ViewCode, ViewDescription);
+                    ViewMgt.SaveViewFromPayload(ViewCode, ViewDescription, CurrentFilterJson);
                     RefreshDashboard();
                 end;
 
