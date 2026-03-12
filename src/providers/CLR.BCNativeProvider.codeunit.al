@@ -3,7 +3,6 @@ codeunit 50300 "CLR BC Native Provider" implements "CLR IDataProvider"
     procedure GetGLMetrics(FromDate: Date; ToDate: Date; GLAccountFilter: Text; var Buffer: Record "CLR BI Metric Buffer" temporary)
     var
         Setup: Record "CLR Data Provider Setup";
-        GLEntry: Record "G/L Entry";
         RevenueRaw: Decimal;
         CogsRaw: Decimal;
         PayrollRaw: Decimal;
@@ -191,36 +190,103 @@ codeunit 50300 "CLR BC Native Provider" implements "CLR IDataProvider"
     end;
 
     procedure GetJobMetrics(FromDate: Date; ToDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        JobLedgerEntry: Record "Job Ledger Entry";
+        JobEntryCount: Integer;
     begin
+        JobLedgerEntry.Reset();
+        JobLedgerEntry.SetRange("Posting Date", FromDate, ToDate);
+        JobEntryCount := JobLedgerEntry.Count();
+        InsertMetric(Buffer, 'JOB_ENTRY_COUNT', FromDate, ToDate, JobEntryCount, 'Job ledger entries', '', Enum::"CLR Metric Type"::Count);
     end;
 
     procedure GetFixedAssetMetrics(AsOfDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        FALedgerEntry: Record "FA Ledger Entry";
+        FaEntryCount: Integer;
     begin
+        FALedgerEntry.Reset();
+        FALedgerEntry.SetRange("Posting Date", 0D, AsOfDate);
+        FaEntryCount := FALedgerEntry.Count();
+        InsertMetric(Buffer, 'FA_ENTRY_COUNT', AsOfDate, AsOfDate, FaEntryCount, 'FA ledger entries', '', Enum::"CLR Metric Type"::Count);
     end;
 
     procedure GetPayrollMetrics(FromDate: Date; ToDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        Setup: Record "CLR Data Provider Setup";
+        PayrollAmount: Decimal;
     begin
+        if EnsureSetup(Setup) then begin
+            PayrollAmount := Abs(SumGLEntryAmount(FromDate, ToDate, Setup."Payroll GL Account Filter"));
+            InsertMetric(Buffer, 'PAYROLL_TOTAL', FromDate, ToDate, PayrollAmount, 'Payroll amount', '', Enum::"CLR Metric Type"::Amount);
+            exit;
+        end;
+
+        InsertMetric(Buffer, 'PAYROLL_TOTAL', FromDate, ToDate, 0, 'Payroll amount', '', Enum::"CLR Metric Type"::Amount);
     end;
 
     procedure GetServiceMetrics(FromDate: Date; ToDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        ServiceLedgerEntry: Record "Service Ledger Entry";
+        ServiceEntryCount: Integer;
     begin
+        ServiceLedgerEntry.Reset();
+        ServiceLedgerEntry.SetRange("Posting Date", FromDate, ToDate);
+        ServiceEntryCount := ServiceLedgerEntry.Count();
+        InsertMetric(Buffer, 'SERVICE_ENTRY_COUNT', FromDate, ToDate, ServiceEntryCount, 'Service ledger entries', '', Enum::"CLR Metric Type"::Count);
     end;
 
     procedure GetPurchaseMetrics(FromDate: Date; ToDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        VendorLedgerEntry: Record "Vendor Ledger Entry";
+        PurchaseEntryCount: Integer;
     begin
+        VendorLedgerEntry.Reset();
+        VendorLedgerEntry.SetRange("Posting Date", FromDate, ToDate);
+        PurchaseEntryCount := VendorLedgerEntry.Count();
+        InsertMetric(Buffer, 'PURCHASE_ENTRY_COUNT', FromDate, ToDate, PurchaseEntryCount, 'Purchasing entries', '', Enum::"CLR Metric Type"::Count);
     end;
 
     procedure GetManufacturingMetrics(FromDate: Date; ToDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        ValueEntry: Record "Value Entry";
+        MfgEntryCount: Integer;
     begin
+        ValueEntry.Reset();
+        ValueEntry.SetRange("Posting Date", FromDate, ToDate);
+        MfgEntryCount := ValueEntry.Count();
+        InsertMetric(Buffer, 'MFG_ENTRY_COUNT', FromDate, ToDate, MfgEntryCount, 'Manufacturing/value entries', '', Enum::"CLR Metric Type"::Count);
     end;
 
     procedure HasSubscriptionData(): Boolean
+    var
+        Detector: Codeunit "CLR Module Detector";
     begin
-        exit(false);
+        exit(Detector.IsRecur365Installed());
     end;
 
     procedure GetMRRMetrics(FromDate: Date; ToDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        Setup: Record "CLR Data Provider Setup";
+        RevenueAmount: Decimal;
+        MonthCount: Integer;
+        MrrAmount: Decimal;
     begin
+        if not EnsureSetup(Setup) then begin
+            InsertMetric(Buffer, 'MRR', FromDate, ToDate, 0, 'Monthly Recurring Revenue', '', Enum::"CLR Metric Type"::Amount);
+            InsertMetric(Buffer, 'MRR_TREND', FromDate, ToDate, 0, 'MRR Trend', '', Enum::"CLR Metric Type"::Percentage);
+            exit;
+        end;
+
+        RevenueAmount := NormalizeRevenue(SumGLEntryAmount(FromDate, ToDate, Setup."Revenue GL Account Filter"));
+        MonthCount := GetMonthCount(FromDate, ToDate);
+        if MonthCount <= 0 then
+            MonthCount := 1;
+
+        MrrAmount := Round(RevenueAmount / MonthCount, 0.01);
+
+        InsertMetric(Buffer, 'MRR', FromDate, ToDate, MrrAmount, 'Monthly Recurring Revenue', '', Enum::"CLR Metric Type"::Amount);
+        InsertMetric(Buffer, 'MRR_TREND', FromDate, ToDate, 0, 'MRR Trend', '', Enum::"CLR Metric Type"::Percentage);
     end;
 
     local procedure EnsureSetup(var Setup: Record "CLR Data Provider Setup"): Boolean
@@ -279,5 +345,22 @@ codeunit 50300 "CLR BC Native Provider" implements "CLR IDataProvider"
         end;
 
         InsertMetric(Buffer, MetricCode, PeriodFrom, PeriodTo, Amount, MetricDescription, GroupCode, MetricType);
+    end;
+
+    local procedure GetMonthCount(FromDate: Date; ToDate: Date): Integer
+    var
+        LoopDate: Date;
+        Months: Integer;
+    begin
+        if (FromDate = 0D) or (ToDate = 0D) or (FromDate > ToDate) then
+            exit(0);
+
+        LoopDate := CalcDate('<CM>', FromDate);
+        while LoopDate <= ToDate do begin
+            Months += 1;
+            LoopDate := CalcDate('<CM+1M>', LoopDate);
+        end;
+
+        exit(Months);
     end;
 }
