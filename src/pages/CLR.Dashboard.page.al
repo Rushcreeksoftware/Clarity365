@@ -14,10 +14,10 @@ page 50250 "CLR Dashboard"
                 ApplicationArea = All;
 
                 trigger ControlAddInReady()
-                var
-                    BiEngine: Codeunit "CLR BI Engine";
                 begin
-                    CurrPage.Dashboard.SendData(BiEngine.BuildPayloadJson());
+                    CurrentScenarioCode := 'BASE';
+                    CurrentFilterJson := '';
+                    RefreshDashboard();
                     CurrPage.Dashboard.SetMode('bi');
                 end;
 
@@ -28,7 +28,7 @@ page 50250 "CLR Dashboard"
 
                 trigger FilterChanged(FilterJson: Text)
                 begin
-                    if FilterJson <> '' then;
+                    CurrentFilterJson := FilterJson;
                     RefreshDashboard();
                 end;
 
@@ -38,11 +38,13 @@ page 50250 "CLR Dashboard"
                     ScenarioHeader: Record "CLR CF Scenario Header";
                 begin
                     if ScenarioCode = '' then begin
+                        CurrentScenarioCode := 'BASE';
                         RefreshDashboard();
                         exit;
                     end;
 
-                    if ScenarioHeader.Get(CopyStr(UpperCase(ScenarioCode), 1, MaxStrLen(ScenarioHeader.Code))) then
+                    CurrentScenarioCode := CopyStr(UpperCase(ScenarioCode), 1, 20);
+                    if ScenarioHeader.Get(CurrentScenarioCode) then
                         ForecastEngine.BuildScenario(ScenarioHeader.Code);
 
                     RefreshDashboard();
@@ -78,10 +80,14 @@ page 50250 "CLR Dashboard"
         }
     }
 
+    var
+        CurrentFilterJson: Text;
+        CurrentScenarioCode: Code[20];
+
     local procedure RefreshDashboard()
     var
         BiEngine: Codeunit "CLR BI Engine";
     begin
-        CurrPage.Dashboard.SendData(BiEngine.BuildPayloadJson());
+        CurrPage.Dashboard.SendData(BiEngine.BuildPayloadJsonWithContext(CurrentFilterJson, CurrentScenarioCode));
     end;
 }

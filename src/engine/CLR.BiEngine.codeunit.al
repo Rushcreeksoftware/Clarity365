@@ -1,12 +1,20 @@
 codeunit 50304 "CLR BI Engine"
 {
     procedure BuildPayloadJson(): Text
+    begin
+        exit(BuildPayloadJsonWithContext('', 'BASE'));
+    end;
+
+    procedure BuildPayloadJsonWithContext(FilterJson: Text; ScenarioCode: Code[20]): Text
     var
         ProviderFactory: Codeunit "CLR Provider Factory";
         Setup: Record "CLR Data Provider Setup";
         Provider: Interface "CLR IDataProvider";
         MetricBuffer: Record "CLR BI Metric Buffer" temporary;
         TempMetricBuffer: Record "CLR BI Metric Buffer" temporary;
+        DimensionCode: Code[20];
+        RevenueFilter: Text;
+        RequestedRange: Text;
         FromDate: Date;
         AsOfDate: Date;
         MonthStart: Date;
@@ -42,6 +50,7 @@ codeunit 50304 "CLR BI Engine"
         HasBaseScenario: Boolean;
         HasUpsideScenario: Boolean;
         HasDownsideScenario: Boolean;
+        SelectedScenario: Code[20];
     begin
         Provider := ProviderFactory.GetProvider();
 
@@ -50,10 +59,11 @@ codeunit 50304 "CLR BI Engine"
             Setup."Primary Key" := '';
         end;
 
-        FromDate := CalcDate('<CY>', Today());
-        AsOfDate := Today();
+        ResolveFilterContext(FilterJson, Setup, FromDate, AsOfDate, RequestedRange, RevenueFilter, DimensionCode);
+        SelectedScenario := NormalizeScenarioCode(ScenarioCode);
+
         MetricBuffer.DeleteAll();
-        Provider.GetGLMetrics(FromDate, AsOfDate, Setup."Revenue GL Account Filter", MetricBuffer);
+        Provider.GetGLMetrics(FromDate, AsOfDate, RevenueFilter, MetricBuffer);
         RevenueAmount := GetMetricAmount(MetricBuffer, 'REVENUE');
         CogsAmount := GetMetricAmount(MetricBuffer, 'COGS');
         GrossMarginAmount := GetMetricAmount(MetricBuffer, 'GROSS_MARGIN');
@@ -77,8 +87,8 @@ codeunit 50304 "CLR BI Engine"
         MrrAmount := GetMetricAmount(MetricBuffer, 'MRR');
 
         MetricBuffer.DeleteAll();
-        if Setup."Primary Dimension Code" <> '' then begin
-            Provider.GetDimensionBreakdown(Setup."Primary Dimension Code", FromDate, AsOfDate, Setup."Revenue GL Account Filter", MetricBuffer);
+        if DimensionCode <> '' then begin
+            Provider.GetDimensionBreakdown(DimensionCode, FromDate, AsOfDate, RevenueFilter, MetricBuffer);
             BuildDimensionRows(MetricBuffer, Dimensions);
         end;
 
@@ -120,7 +130,7 @@ codeunit 50304 "CLR BI Engine"
         Payload.Add('activeModules', Detector.GetActiveModulesCsv());
         Payload.Add('hasRecur365', Detector.IsRecur365Installed());
         Payload.Add('currencyCode', GetCurrencyCode());
-        Payload.Add('reportingDate', Format(Today(), 0, 9));
+        Payload.Add('reportingDate', Format(AsOfDate, 0, 9));
 
         Kpis.Add('revenueMtd', RevenueAmount);
         Kpis.Add('revenueYtd', RevenueAmount);
@@ -137,7 +147,7 @@ codeunit 50304 "CLR BI Engine"
         MrrTrendPct := CalculateTrendPct(PreviousMrrAmount, MrrAmount);
         Kpis.Add('mrrTrend', MrrTrendPct);
 
-        BuildRevenueTrend(Provider, Setup, Revenue);
+        BuildRevenueTrend(Provider, Setup, Revenue, AsOfDate, RevenueFilter);
         BuildCashFlowArray(CashFlow, AsOfDate);
 
         HasBaseScenario := ScenarioHasData('BASE');
@@ -158,9 +168,9 @@ codeunit 50304 "CLR BI Engine"
         Payload.Add('purchasing', Purchasing);
         Payload.Add('mrr', MrrSeries);
         Payload.Add('cashFlow', CashFlow);
-        Scenarios.Add('base', HasBaseScenario);
-        Scenarios.Add('upside', HasUpsideScenario);
-        Scenarios.Add('downside', HasDownsideScenario);
+        Scenarios.Add('base', (SelectedScenario = 'BASE') and HasBaseScenario);
+        Scenarios.Add('upside', (SelectedScenario = 'UPSIDE') and HasUpsideScenario);
+        Scenarios.Add('downside', (SelectedScenario = 'DOWNSIDE') and HasDownsideScenario);
         Payload.Add('scenarios', Scenarios);
 
         Payload.WriteTo(JsonText);
@@ -290,7 +300,7 @@ codeunit 50304 "CLR BI Engine"
         InventoryArray.Add(InventoryObj);
     end;
 
-    local procedure BuildRevenueTrend(Provider: Interface "CLR IDataProvider"; Setup: Record "CLR Data Provider Setup"; var RevenueArray: JsonArray)
+    local procedure BuildRevenueTrend(Provider: Interface "CLR IDataProvider"; Setup: Record "CLR Data Provider Setup"; var RevenueArray: JsonArray; AsOfDate: Date; RevenueFilter: Text)
     var
         MonthOffset: Integer;
         PeriodStart: Date;
@@ -302,11 +312,11 @@ codeunit 50304 "CLR BI Engine"
         GrossMarginValue: Decimal;
     begin
         for MonthOffset := 5 downto 0 do begin
-            PeriodStart := CalcDate(StrSubstNo('<CM-%1M>', MonthOffset), Today());
+            PeriodStart := CalcDate(StrSubstNo('<CM-%1M>', MonthOffset), AsOfDate);
             PeriodEnd := CalcDate('<CM+1M-1D>', PeriodStart);
 
             MetricBuffer.DeleteAll();
-            Provider.GetGLMetrics(PeriodStart, PeriodEnd, Setup."Revenue GL Account Filter", MetricBuffer);
+            Provider.GetGLMetrics(PeriodStart, PeriodEnd, RevenueFilter, MetricBuffer);
             RevenueValue := GetMetricAmount(MetricBuffer, 'REVENUE');
             CogsValue := GetMetricAmount(MetricBuffer, 'COGS');
             GrossMarginValue := GetMetricAmount(MetricBuffer, 'GROSS_MARGIN');
@@ -342,6 +352,73 @@ codeunit 50304 "CLR BI Engine"
             PayrollArray.Add(PayrollObj);
             Clear(PayrollObj);
         end;
+    end;
+
+    local procedure ResolveFilterContext(FilterJson: Text; Setup: Record "CLR Data Provider Setup"; var FromDate: Date; var AsOfDate: Date; var RequestedRange: Text; var RevenueFilter: Text; var DimensionCode: Code[20])
+    var
+        FilterObj: JsonObject;
+        Token: JsonToken;
+        TokenText: Text;
+    begin
+        AsOfDate := Today();
+        FromDate := CalcDate('<CY>', AsOfDate);
+        RevenueFilter := Setup."Revenue GL Account Filter";
+        DimensionCode := Setup."Primary Dimension Code";
+        RequestedRange := 'year-to-date';
+
+        if FilterJson = '' then
+            exit;
+
+        if not FilterObj.ReadFrom(FilterJson) then
+            exit;
+
+        if FilterObj.Get('range', Token) then begin
+            RequestedRange := LowerCase(Token.AsValue().AsText());
+            case RequestedRange of
+                'last-30-days':
+                    FromDate := CalcDate('<-30D>', AsOfDate);
+                'year-to-date':
+                    FromDate := CalcDate('<CY>', AsOfDate);
+                'last-12-months':
+                    FromDate := CalcDate('<-12M>', AsOfDate);
+            end;
+        end;
+
+        if FilterObj.Get('asOfDate', Token) then begin
+            TokenText := Token.AsValue().AsText();
+            if Evaluate(AsOfDate, TokenText) then begin
+                if RequestedRange = 'last-30-days' then
+                    FromDate := CalcDate('<-30D>', AsOfDate)
+                else
+                    if RequestedRange = 'last-12-months' then
+                        FromDate := CalcDate('<-12M>', AsOfDate)
+                    else
+                        FromDate := CalcDate('<CY>', AsOfDate);
+            end;
+        end;
+
+        if FilterObj.Get('glFilter', Token) then begin
+            TokenText := Token.AsValue().AsText();
+            if TokenText <> '' then
+                RevenueFilter := TokenText;
+        end;
+
+        if FilterObj.Get('dimensionCode', Token) then begin
+            TokenText := Token.AsValue().AsText();
+            if TokenText <> '' then
+                DimensionCode := CopyStr(TokenText, 1, MaxStrLen(DimensionCode));
+        end;
+    end;
+
+    local procedure NormalizeScenarioCode(ScenarioCode: Code[20]): Code[20]
+    var
+        Value: Code[20];
+    begin
+        Value := CopyStr(UpperCase(ScenarioCode), 1, 20);
+        if (Value <> 'BASE') and (Value <> 'UPSIDE') and (Value <> 'DOWNSIDE') then
+            exit('BASE');
+
+        exit(Value);
     end;
 
     local procedure BuildServiceTrend(Provider: Interface "CLR IDataProvider"; var ServiceArray: JsonArray; AsOfDate: Date)
