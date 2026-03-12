@@ -164,4 +164,40 @@ codeunit 50344 "CLR ProviderTests"
         if ViewMode <> 'cashflow' then
             Error('Expected saved view mode to be cashflow.');
     end;
+
+    [Test]
+    procedure DashboardViewMgmtDefaultsModeToBiWhenBlank()
+    var
+        ViewMgt: Codeunit "CLR Dashboard View Mgmt";
+        ViewMode: Text[20];
+    begin
+        // GIVEN
+        ViewMgt.SaveViewWithMode('UTMODEBI', 'Mode Default View', '');
+
+        // WHEN
+        if not ViewMgt.TryGetViewMode('UTMODEBI', ViewMode) then
+            Error('Expected to retrieve saved view mode.');
+
+        // THEN
+        if ViewMode <> 'bi' then
+            Error('Expected blank mode to default to bi.');
+    end;
+
+    [Test]
+    procedure DashboardViewMgmtPersistsModeFromPayloadSave()
+    var
+        ViewMgt: Codeunit "CLR Dashboard View Mgmt";
+        ViewMode: Text[20];
+    begin
+        // GIVEN
+        ViewMgt.SaveViewFromPayloadWithMode('UTMODEPAY', 'Mode Payload View', '{"range":"year-to-date"}', 'cashflow');
+
+        // WHEN
+        if not ViewMgt.TryGetViewMode('UTMODEPAY', ViewMode) then
+            Error('Expected to retrieve saved view mode.');
+
+        // THEN
+        if ViewMode <> 'cashflow' then
+            Error('Expected payload save mode to persist as cashflow.');
+    end;
 }
