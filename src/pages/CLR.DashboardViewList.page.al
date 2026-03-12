@@ -21,4 +21,40 @@ page 50255 "CLR Dashboard View List"
             }
         }
     }
+
+    actions
+    {
+        area(Processing)
+        {
+            action(ShareView)
+            {
+                ApplicationArea = All;
+                Caption = 'Share View';
+                Image = Share;
+
+                trigger OnAction()
+                var
+                    ViewMgt: Codeunit "CLR Dashboard View Mgmt";
+                begin
+                    ViewMgt.SetViewShared(Rec.Code, true);
+                    CurrPage.Update(false);
+                end;
+            }
+
+            action(UnshareView)
+            {
+                ApplicationArea = All;
+                Caption = 'Unshare View';
+                Image = UnShare;
+
+                trigger OnAction()
+                var
+                    ViewMgt: Codeunit "CLR Dashboard View Mgmt";
+                begin
+                    ViewMgt.SetViewShared(Rec.Code, false);
+                    CurrPage.Update(false);
+                end;
+            }
+        }
+    }
 }

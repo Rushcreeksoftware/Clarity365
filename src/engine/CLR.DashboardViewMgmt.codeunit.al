@@ -78,6 +78,17 @@ codeunit 50307 "CLR Dashboard View Mgmt"
         exit(true);
     end;
 
+    procedure SetViewShared(ViewCode: Code[20]; IsShared: Boolean)
+    var
+        DashboardView: Record "CLR Dashboard View";
+    begin
+        if not DashboardView.Get(ViewCode) then
+            exit;
+
+        DashboardView."Is Shared" := IsShared;
+        DashboardView.Modify(true);
+    end;
+
     local procedure InsertFilterLine(ViewCode: Code[20]; LineNo: Integer; FieldName: Text[100]; FilterValue: Text)
     var
         DashboardViewFilter: Record "CLR Dashboard View Filter";

@@ -107,4 +107,30 @@ codeunit 50344 "CLR ProviderTests"
         if Token.AsValue().AsText() <> '2026-03-12' then
             Error('Unexpected asOfDate value in loaded filter payload.');
     end;
+
+    [Test]
+    procedure DashboardViewMgmtCanShareAndUnshareView()
+    var
+        ViewMgt: Codeunit "CLR Dashboard View Mgmt";
+        DashboardView: Record "CLR Dashboard View";
+    begin
+        // GIVEN
+        ViewMgt.SaveView('UTVSHARE', 'Share Toggle View');
+
+        // WHEN
+        ViewMgt.SetViewShared('UTVSHARE', true);
+
+        // THEN
+        DashboardView.Get('UTVSHARE');
+        if not DashboardView."Is Shared" then
+            Error('Expected view to be marked shared.');
+
+        // WHEN
+        ViewMgt.SetViewShared('UTVSHARE', false);
+
+        // THEN
+        DashboardView.Get('UTVSHARE');
+        if DashboardView."Is Shared" then
+            Error('Expected view to be marked unshared.');
+    end;
 }

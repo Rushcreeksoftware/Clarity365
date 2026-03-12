@@ -1,5 +1,13 @@
 codeunit 50308 "CLR Setup Wizard Mgmt"
 {
+    procedure DetectActiveModules(var Setup: Record "CLR Data Provider Setup")
+    var
+        Detector: Codeunit "CLR Module Detector";
+    begin
+        Detector.GetActiveModulesCsv();
+        if Setup.Get('') then;
+    end;
+
     procedure ApplyAutoSuggestions(var Setup: Record "CLR Data Provider Setup")
     var
         GLAccount: Record "G/L Account";

@@ -22,6 +22,12 @@ page 50257 "CLR Setup Wizard"
                 field("CF Forecast Months"; Rec."CF Forecast Months") { ApplicationArea = All; }
                 field("Default AR Collection Days"; Rec."Default AR Collection Days") { ApplicationArea = All; }
                 field("Default AP Payment Days"; Rec."Default AP Payment Days") { ApplicationArea = All; }
+                field("Show Jobs Module"; Rec."Show Jobs Module") { ApplicationArea = All; Editable = false; }
+                field("Show FA Module"; Rec."Show FA Module") { ApplicationArea = All; Editable = false; }
+                field("Show Service Module"; Rec."Show Service Module") { ApplicationArea = All; Editable = false; }
+                field("Show HR Module"; Rec."Show HR Module") { ApplicationArea = All; Editable = false; }
+                field("Show Manufacturing Module"; Rec."Show Manufacturing Module") { ApplicationArea = All; Editable = false; }
+                field("Show Purchasing Module"; Rec."Show Purchasing Module") { ApplicationArea = All; Editable = false; }
             }
         }
     }
@@ -46,6 +52,21 @@ page 50257 "CLR Setup Wizard"
                 end;
             }
 
+            action(DetectModules)
+            {
+                ApplicationArea = All;
+                Caption = 'Detect Modules';
+                Image = RefreshLines;
+
+                trigger OnAction()
+                var
+                    WizardMgt: Codeunit "CLR Setup Wizard Mgmt";
+                begin
+                    WizardMgt.DetectActiveModules(Rec);
+                    CurrPage.Update(false);
+                end;
+            }
+
             action(CompleteWizard)
             {
                 ApplicationArea = All;
@@ -65,11 +86,15 @@ page 50257 "CLR Setup Wizard"
     }
 
     trigger OnOpenPage()
+    var
+        WizardMgt: Codeunit "CLR Setup Wizard Mgmt";
     begin
         if not Rec.Get('') then begin
             Rec.Init();
             Rec."Primary Key" := '';
             Rec.Insert(true);
         end;
+
+        WizardMgt.DetectActiveModules(Rec);
     end;
 }
