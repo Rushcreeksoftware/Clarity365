@@ -1,0 +1,46 @@
+permissionset 50390 "CLR Admin"
+{
+    Assignable = true;
+    Caption = 'Clarity Admin';
+
+    Permissions =
+        tabledata "CLR Data Provider Setup" = RIMD,
+        tabledata "CLR BI Metric Buffer" = RIMD,
+        tabledata "CLR Dashboard View" = RIMD,
+        tabledata "CLR Dashboard View Filter" = RIMD,
+        tabledata "CLR CF Scenario Header" = RIMD,
+        tabledata "CLR CF Scenario Assumption" = RIMD,
+        tabledata "CLR CF Projection Line" = RIMD,
+        tabledata "CLR Manual CF Entry" = RIMD,
+        tabledata "CLR Error Log" = RIMD,
+        table "CLR Data Provider Setup" = X,
+        table "CLR BI Metric Buffer" = X,
+        table "CLR Dashboard View" = X,
+        table "CLR Dashboard View Filter" = X,
+        table "CLR CF Scenario Header" = X,
+        table "CLR CF Scenario Assumption" = X,
+        table "CLR CF Projection Line" = X,
+        table "CLR Manual CF Entry" = X,
+        table "CLR Error Log" = X,
+        page "CLR Dashboard" = X,
+        page "CLR CF Scenario List" = X,
+        page "CLR CF Scenario Card" = X,
+        page "CLR CF Assumption List" = X,
+        page "CLR Manual CF Entry List" = X,
+        page "CLR Dashboard View List" = X,
+        page "CLR Setup" = X,
+        page "CLR Setup Wizard" = X,
+        page "CLR BI Metrics API" = X,
+        page "CLR CF Projection API" = X,
+        page "CLR Module Status API" = X,
+        codeunit "CLR BC Native Provider" = X,
+        codeunit "CLR Recur365 Provider" = X,
+        codeunit "CLR Provider Factory" = X,
+        codeunit "CLR Module Detector" = X,
+        codeunit "CLR BI Engine" = X,
+        codeunit "CLR Cf Forecast Engine" = X,
+        codeunit "CLR Cf Scenario Mgmt" = X,
+        codeunit "CLR Dashboard View Mgmt" = X,
+        codeunit "CLR Setup Wizard Mgmt" = X,
+        codeunit "CLR Install" = X;
+}

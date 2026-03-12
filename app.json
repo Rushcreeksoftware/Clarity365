@@ -3,8 +3,8 @@
   "name": "Clarity365",
   "publisher": "Rush Creek Software Inc.",
   "version": "1.0.0.0",
-  "brief": "Clarity365 for Microsoft Dynamics 365 Business Central.",
-  "description": "Clarity365 extension project scaffold for Business Central.",
+  "brief": "Clarity365 self-service BI and cash flow forecasting for Dynamics 365 Business Central.",
+  "description": "Clarity365 provides interactive BI dashboards, saved views, and multi-scenario cash flow forecasting for Microsoft Dynamics 365 Business Central.",
   "privacyStatement": "https://rushcreeksoftware.com/privacy",
   "EULA": "https://rushcreeksoftware.com/eula",
   "help": "https://rushcreeksoftware.com/clarity365/help",
@@ -17,8 +17,8 @@
   "application": "27.5.0.0",
   "idRanges": [
     {
-      "from": 1000200,
-      "to": 1000299
+      "from": 50200,
+      "to": 50399
     }
   ],
   "resourceExposurePolicy": {
