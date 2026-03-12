@@ -86,6 +86,34 @@ page 50250 "CLR Dashboard"
     {
         area(Processing)
         {
+            action(LoadSavedView)
+            {
+                ApplicationArea = All;
+                Caption = 'Load Saved View';
+                Image = GetSourceDoc;
+
+                trigger OnAction()
+                var
+                    ViewMgt: Codeunit "CLR Dashboard View Mgmt";
+                    DashboardView: Record "CLR Dashboard View";
+                    DashboardViewList: Page "CLR Dashboard View List";
+                    LoadedFilterJson: Text;
+                begin
+                    DashboardViewList.LookupMode(true);
+                    DashboardViewList.SetTableView(DashboardView);
+
+                    if DashboardViewList.RunModal() <> Action::LookupOK then
+                        exit;
+
+                    DashboardViewList.GetRecord(DashboardView);
+                    if not ViewMgt.TryBuildFilterPayload(DashboardView.Code, LoadedFilterJson) then
+                        Error('Saved view %1 does not contain any filters.', DashboardView.Code);
+
+                    CurrentFilterJson := LoadedFilterJson;
+                    RefreshDashboard();
+                end;
+            }
+
             action(OpenExportLog)
             {
                 ApplicationArea = All;

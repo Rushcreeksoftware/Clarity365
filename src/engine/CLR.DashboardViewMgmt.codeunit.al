@@ -60,6 +60,24 @@ codeunit 50307 "CLR Dashboard View Mgmt"
         end;
     end;
 
+    procedure TryBuildFilterPayload(ViewCode: Code[20]; var FilterJson: Text): Boolean
+    var
+        DashboardViewFilter: Record "CLR Dashboard View Filter";
+        FilterObject: JsonObject;
+    begin
+        FilterJson := '';
+        DashboardViewFilter.SetRange("View Code", ViewCode);
+        if not DashboardViewFilter.FindSet() then
+            exit(false);
+
+        repeat
+            AddOrReplaceJsonProperty(FilterObject, DashboardViewFilter."Field Name", DashboardViewFilter."Filter Value");
+        until DashboardViewFilter.Next() = 0;
+
+        FilterObject.WriteTo(FilterJson);
+        exit(true);
+    end;
+
     local procedure InsertFilterLine(ViewCode: Code[20]; LineNo: Integer; FieldName: Text[100]; FilterValue: Text)
     var
         DashboardViewFilter: Record "CLR Dashboard View Filter";
@@ -70,5 +88,13 @@ codeunit 50307 "CLR Dashboard View Mgmt"
         DashboardViewFilter."Field Name" := FieldName;
         DashboardViewFilter."Filter Value" := CopyStr(FilterValue, 1, MaxStrLen(DashboardViewFilter."Filter Value"));
         DashboardViewFilter.Insert(true);
+    end;
+
+    local procedure AddOrReplaceJsonProperty(var JsonObj: JsonObject; PropertyName: Text; PropertyValue: Text)
+    begin
+        if JsonObj.Contains(PropertyName) then
+            JsonObj.Replace(PropertyName, PropertyValue)
+        else
+            JsonObj.Add(PropertyName, PropertyValue);
     end;
 }

@@ -77,4 +77,34 @@ codeunit 50344 "CLR ProviderTests"
         if ViewFilter.Count() = 0 then
             Error('Expected saved view filters for UTVIEW.');
     end;
+
+    [Test]
+    procedure DashboardViewMgmtBuildsFilterPayloadFromSavedView()
+    var
+        ViewMgt: Codeunit "CLR Dashboard View Mgmt";
+        FilterJson: Text;
+        Payload: JsonObject;
+        Token: JsonToken;
+    begin
+        // GIVEN
+        ViewMgt.SaveViewFromPayload('UTVIEW2', 'Unit Test View 2', '{"range":"last-12-months","asOfDate":"2026-03-12","glFilter":"4*","dimensionCode":"DEPARTMENT"}');
+
+        // WHEN
+        if not ViewMgt.TryBuildFilterPayload('UTVIEW2', FilterJson) then
+            Error('Expected filter payload for UTVIEW2.');
+
+        // THEN
+        if not Payload.ReadFrom(FilterJson) then
+            Error('Expected valid JSON payload from saved view filters.');
+
+        if not Payload.Get('range', Token) then
+            Error('Expected range property in loaded filter payload.');
+        if Token.AsValue().AsText() <> 'last-12-months' then
+            Error('Unexpected range value in loaded filter payload.');
+
+        if not Payload.Get('asOfDate', Token) then
+            Error('Expected asOfDate property in loaded filter payload.');
+        if Token.AsValue().AsText() <> '2026-03-12' then
+            Error('Unexpected asOfDate value in loaded filter payload.');
+    end;
 }
