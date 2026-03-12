@@ -243,49 +243,70 @@ codeunit 50304 "CLR BI Engine"
     local procedure BuildJobArray(var MetricBuffer: Record "CLR BI Metric Buffer" temporary; var JobsArray: JsonArray)
     var
         JobObj: JsonObject;
-        MetricValue: Decimal;
+        EntryCount: Decimal;
+        RevenueValue: Decimal;
+        CostValue: Decimal;
     begin
-        MetricValue := GetMetricAmount(MetricBuffer, 'JOB_ENTRY_COUNT');
-        if MetricValue = 0 then
+        EntryCount := GetMetricAmount(MetricBuffer, 'JOB_ENTRY_COUNT');
+        RevenueValue := GetMetricAmount(MetricBuffer, 'JOB_REVENUE');
+        CostValue := GetMetricAmount(MetricBuffer, 'JOB_COST');
+
+        if (EntryCount = 0) and (RevenueValue = 0) and (CostValue = 0) then
             exit;
 
+        if RevenueValue = 0 then
+            RevenueValue := EntryCount;
+
         JobObj.Add('jobNo', 'JOBS');
-        JobObj.Add('jobName', 'Job Entries');
-        JobObj.Add('revenue', MetricValue);
-        JobObj.Add('cost', 0);
-        JobObj.Add('margin', MetricValue);
+        JobObj.Add('jobName', 'Jobs Summary');
+        JobObj.Add('revenue', RevenueValue);
+        JobObj.Add('cost', CostValue);
+        JobObj.Add('margin', RevenueValue - CostValue);
         JobsArray.Add(JobObj);
     end;
 
     local procedure BuildFaArray(var MetricBuffer: Record "CLR BI Metric Buffer" temporary; var FaArray: JsonArray)
     var
         FaObj: JsonObject;
-        MetricValue: Decimal;
+        EntryCount: Decimal;
+        NbvValue: Decimal;
     begin
-        MetricValue := GetMetricAmount(MetricBuffer, 'FA_ENTRY_COUNT');
-        if MetricValue = 0 then
+        EntryCount := GetMetricAmount(MetricBuffer, 'FA_ENTRY_COUNT');
+        NbvValue := GetMetricAmount(MetricBuffer, 'FA_NBV');
+        if (EntryCount = 0) and (NbvValue = 0) then
             exit;
 
+        if NbvValue = 0 then
+            NbvValue := EntryCount;
+
         FaObj.Add('class', 'Fixed Assets');
-        FaObj.Add('cost', MetricValue);
+        FaObj.Add('cost', NbvValue);
         FaObj.Add('depreciation', 0);
-        FaObj.Add('nbv', MetricValue);
+        FaObj.Add('nbv', NbvValue);
         FaArray.Add(FaObj);
     end;
 
     local procedure BuildServiceArray(var MetricBuffer: Record "CLR BI Metric Buffer" temporary; var ServiceArray: JsonArray; AsOfDate: Date)
     var
         ServiceObj: JsonObject;
-        MetricValue: Decimal;
+        EntryCount: Decimal;
+        RevenueValue: Decimal;
+        CostValue: Decimal;
     begin
-        MetricValue := GetMetricAmount(MetricBuffer, 'SERVICE_ENTRY_COUNT');
-        if MetricValue = 0 then
+        EntryCount := GetMetricAmount(MetricBuffer, 'SERVICE_ENTRY_COUNT');
+        RevenueValue := GetMetricAmount(MetricBuffer, 'SERVICE_REVENUE');
+        CostValue := GetMetricAmount(MetricBuffer, 'SERVICE_COST');
+
+        if (EntryCount = 0) and (RevenueValue = 0) and (CostValue = 0) then
             exit;
 
+        if RevenueValue = 0 then
+            RevenueValue := EntryCount;
+
         ServiceObj.Add('date', Format(CalcDate('<CM>', AsOfDate), 0, 9));
-        ServiceObj.Add('revenue', MetricValue);
-        ServiceObj.Add('cost', 0);
-        ServiceObj.Add('margin', MetricValue);
+        ServiceObj.Add('revenue', RevenueValue);
+        ServiceObj.Add('cost', CostValue);
+        ServiceObj.Add('margin', RevenueValue - CostValue);
         ServiceArray.Add(ServiceObj);
     end;
 

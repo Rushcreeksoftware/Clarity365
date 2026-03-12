@@ -193,10 +193,18 @@ codeunit 50300 "CLR BC Native Provider" implements "CLR IDataProvider"
     var
         JobLedgerEntry: Record "Job Ledger Entry";
         JobEntryCount: Integer;
+        JobRevenue: Decimal;
+        JobCost: Decimal;
     begin
         JobLedgerEntry.Reset();
         JobLedgerEntry.SetRange("Posting Date", FromDate, ToDate);
         JobEntryCount := JobLedgerEntry.Count();
+        JobLedgerEntry.CalcSums("Line Amount (LCY)", "Total Cost (LCY)");
+        JobRevenue := Abs(JobLedgerEntry."Line Amount (LCY)");
+        JobCost := Abs(JobLedgerEntry."Total Cost (LCY)");
+
+        InsertMetric(Buffer, 'JOB_REVENUE', FromDate, ToDate, JobRevenue, 'Job revenue', '', Enum::"CLR Metric Type"::Amount);
+        InsertMetric(Buffer, 'JOB_COST', FromDate, ToDate, JobCost, 'Job cost', '', Enum::"CLR Metric Type"::Amount);
         InsertMetric(Buffer, 'JOB_ENTRY_COUNT', FromDate, ToDate, JobEntryCount, 'Job ledger entries', '', Enum::"CLR Metric Type"::Count);
     end;
 
@@ -204,10 +212,15 @@ codeunit 50300 "CLR BC Native Provider" implements "CLR IDataProvider"
     var
         FALedgerEntry: Record "FA Ledger Entry";
         FaEntryCount: Integer;
+        FaNbv: Decimal;
     begin
         FALedgerEntry.Reset();
         FALedgerEntry.SetRange("Posting Date", 0D, AsOfDate);
         FaEntryCount := FALedgerEntry.Count();
+        FALedgerEntry.CalcSums(Amount);
+        FaNbv := Abs(FALedgerEntry.Amount);
+
+        InsertMetric(Buffer, 'FA_NBV', AsOfDate, AsOfDate, FaNbv, 'Fixed asset net book value proxy', '', Enum::"CLR Metric Type"::Amount);
         InsertMetric(Buffer, 'FA_ENTRY_COUNT', AsOfDate, AsOfDate, FaEntryCount, 'FA ledger entries', '', Enum::"CLR Metric Type"::Count);
     end;
 
@@ -229,10 +242,18 @@ codeunit 50300 "CLR BC Native Provider" implements "CLR IDataProvider"
     var
         ServiceLedgerEntry: Record "Service Ledger Entry";
         ServiceEntryCount: Integer;
+        ServiceRevenue: Decimal;
+        ServiceCost: Decimal;
     begin
         ServiceLedgerEntry.Reset();
         ServiceLedgerEntry.SetRange("Posting Date", FromDate, ToDate);
         ServiceEntryCount := ServiceLedgerEntry.Count();
+        ServiceLedgerEntry.CalcSums("Amount (LCY)", "Cost Amount");
+        ServiceRevenue := Abs(ServiceLedgerEntry."Amount (LCY)");
+        ServiceCost := Abs(ServiceLedgerEntry."Cost Amount");
+
+        InsertMetric(Buffer, 'SERVICE_REVENUE', FromDate, ToDate, ServiceRevenue, 'Service revenue', '', Enum::"CLR Metric Type"::Amount);
+        InsertMetric(Buffer, 'SERVICE_COST', FromDate, ToDate, ServiceCost, 'Service cost', '', Enum::"CLR Metric Type"::Amount);
         InsertMetric(Buffer, 'SERVICE_ENTRY_COUNT', FromDate, ToDate, ServiceEntryCount, 'Service ledger entries', '', Enum::"CLR Metric Type"::Count);
     end;
 
