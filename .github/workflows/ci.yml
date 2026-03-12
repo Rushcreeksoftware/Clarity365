@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate app.json exists
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "app.json")) {
+            throw "app.json not found"
+          }
+          $app = Get-Content "app.json" | ConvertFrom-Json
+          if (-not $app.name) { throw "app.json missing name" }
+          if (-not $app.id) { throw "app.json missing id" }
+          Write-Host "Validated app.json for $($app.name) $($app.version)"
+
+      - name: Ensure AL source files exist
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path . -Filter *.al -Recurse
+          if ($files.Count -eq 0) {
+            throw "No .al files found"
+          }
+          Write-Host "Found $($files.Count) AL files"
