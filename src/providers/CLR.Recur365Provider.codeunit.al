@@ -1,72 +1,100 @@
 codeunit 50301 "CLR Recur365 Provider" implements "CLR IDataProvider"
 {
     procedure GetGLMetrics(FromDate: Date; ToDate: Date; GLAccountFilter: Text; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        NativeProvider: Codeunit "CLR BC Native Provider";
     begin
-        exit;
+        NativeProvider.GetGLMetrics(FromDate, ToDate, GLAccountFilter, Buffer);
     end;
 
     procedure GetARSummary(AsOfDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        NativeProvider: Codeunit "CLR BC Native Provider";
     begin
-        exit;
+        NativeProvider.GetARSummary(AsOfDate, Buffer);
     end;
 
     procedure GetAPSummary(AsOfDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        NativeProvider: Codeunit "CLR BC Native Provider";
     begin
-        exit;
+        NativeProvider.GetAPSummary(AsOfDate, Buffer);
     end;
 
     procedure GetCurrentCashBalance(): Decimal
+    var
+        NativeProvider: Codeunit "CLR BC Native Provider";
     begin
-        exit(0);
+        exit(NativeProvider.GetCurrentCashBalance());
     end;
 
     procedure GetDimensionBreakdown(DimensionCode: Code[20]; FromDate: Date; ToDate: Date; GLAccountFilter: Text; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        NativeProvider: Codeunit "CLR BC Native Provider";
     begin
-        exit;
+        NativeProvider.GetDimensionBreakdown(DimensionCode, FromDate, ToDate, GLAccountFilter, Buffer);
     end;
 
     procedure GetInventoryValuation(AsOfDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        NativeProvider: Codeunit "CLR BC Native Provider";
     begin
-        exit;
+        NativeProvider.GetInventoryValuation(AsOfDate, Buffer);
     end;
 
     procedure GetJobMetrics(FromDate: Date; ToDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        NativeProvider: Codeunit "CLR BC Native Provider";
     begin
-        exit;
+        NativeProvider.GetJobMetrics(FromDate, ToDate, Buffer);
     end;
 
     procedure GetFixedAssetMetrics(AsOfDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        NativeProvider: Codeunit "CLR BC Native Provider";
     begin
-        exit;
+        NativeProvider.GetFixedAssetMetrics(AsOfDate, Buffer);
     end;
 
     procedure GetPayrollMetrics(FromDate: Date; ToDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        NativeProvider: Codeunit "CLR BC Native Provider";
     begin
-        exit;
+        NativeProvider.GetPayrollMetrics(FromDate, ToDate, Buffer);
     end;
 
     procedure GetServiceMetrics(FromDate: Date; ToDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        NativeProvider: Codeunit "CLR BC Native Provider";
     begin
-        exit;
+        NativeProvider.GetServiceMetrics(FromDate, ToDate, Buffer);
     end;
 
     procedure GetPurchaseMetrics(FromDate: Date; ToDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        NativeProvider: Codeunit "CLR BC Native Provider";
     begin
-        exit;
+        NativeProvider.GetPurchaseMetrics(FromDate, ToDate, Buffer);
     end;
 
     procedure GetManufacturingMetrics(FromDate: Date; ToDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        NativeProvider: Codeunit "CLR BC Native Provider";
     begin
-        exit;
+        NativeProvider.GetManufacturingMetrics(FromDate, ToDate, Buffer);
     end;
 
     procedure HasSubscriptionData(): Boolean
+    var
+        Detector: Codeunit "CLR Module Detector";
     begin
-        exit(false);
+        exit(Detector.IsRecur365Installed());
     end;
 
     procedure GetMRRMetrics(FromDate: Date; ToDate: Date; var Buffer: Record "CLR BI Metric Buffer" temporary)
+    var
+        NativeProvider: Codeunit "CLR BC Native Provider";
     begin
-        exit;
+        NativeProvider.GetMRRMetrics(FromDate, ToDate, Buffer);
     end;
 }

@@ -54,6 +54,7 @@
     var setupCompleted = p.setupCompleted !== false;
     var activeModules = (p.activeModules || '').split(',').map(function (x) { return (x || '').trim(); }).filter(function (x) { return !!x; });
     var hasRecur365 = p.hasRecur365 === true;
+    var isCashFlowMode = (state.mode || 'bi').toLowerCase() === 'cashflow';
     var breakEvenDate = '';
     for (var i = 0; i < cashFlow.length; i++) {
       if (Number(cashFlow[i].base || 0) < 0) {
@@ -82,6 +83,31 @@
     }).join('');
     moduleBadges += '<span style="background:' + (hasRecur365 ? '#ecfdf3' : '#f3f4f6') + ';border:1px solid #d1d5db;border-radius:999px;padding:2px 8px;font-size:12px;">Recur365: ' + (hasRecur365 ? 'Installed' : 'Not Installed') + '</span>';
 
+    var kpiMarkup;
+    if (isCashFlowMode) {
+      kpiMarkup =
+        kpiCard('Cash Balance', k.cashBalance) +
+        kpiCard('Open AR', k.openAR) +
+        kpiCard('Open AP', k.openAP);
+    } else {
+      kpiMarkup =
+        kpiCard('Revenue MTD', k.revenueMtd) +
+        kpiCard('Open AR', k.openAR) +
+        kpiCard('Open AP', k.openAP) +
+        kpiCard('Cash Balance', k.cashBalance) +
+        kpiCard('Gross Margin %', k.grossMarginPct) +
+        kpiCard('MRR', k.mrr);
+    }
+
+    var panelMarkup;
+    if (isCashFlowMode) {
+      panelMarkup = table('Cash Flow', cashFlow, ['date', 'inflows', 'outflows', 'base', 'upside', 'downside']);
+    } else {
+      panelMarkup =
+        table('Revenue Trend', revenue, ['date', 'revenue', 'cogs', 'grossMargin']) +
+        table('Cash Flow', cashFlow, ['date', 'inflows', 'outflows', 'base', 'upside', 'downside']);
+    }
+
     root.innerHTML = '' +
       '<div class="clr-wrap">' +
       '  <h2>Clarity365 Dashboard (' + val(state.mode) + ')</h2>' +
@@ -108,16 +134,10 @@
       '    <div style="display:flex;gap:6px;flex-wrap:wrap;">' + moduleBadges + '</div>' +
       '  </div>' +
       '  <div class="clr-grid">' +
-           kpiCard('Revenue MTD', k.revenueMtd) +
-           kpiCard('Open AR', k.openAR) +
-           kpiCard('Open AP', k.openAP) +
-           kpiCard('Cash Balance', k.cashBalance) +
-           kpiCard('Gross Margin %', k.grossMarginPct) +
-           kpiCard('MRR', k.mrr) +
+         kpiMarkup +
       '  </div>' +
       '  <div class="clr-panels">' +
-           table('Revenue Trend', revenue, ['date', 'revenue', 'cogs', 'grossMargin']) +
-           table('Cash Flow', cashFlow, ['date', 'inflows', 'outflows', 'base', 'upside', 'downside']) +
+         panelMarkup +
       '  </div>' +
        (breakEvenDate ? '  <div class="clr-panel" style="margin-top:12px; background:#fff7ed; border:1px solid #fed7aa;">Break-even alert: base scenario cash turns negative on ' + breakEvenDate + '.</div>' : '') +
       '</div>';

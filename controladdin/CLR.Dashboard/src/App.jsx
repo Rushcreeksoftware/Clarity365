@@ -32,6 +32,7 @@ export default function App() {
     .map((s) => s.trim())
     .filter(Boolean);
   const hasRecur365 = payload?.hasRecur365 === true;
+  const isCashFlowMode = (mode || 'bi').toLowerCase() === 'cashflow';
 
   return (
     <div style={{ fontFamily: 'Segoe UI, sans-serif', padding: 16, background: '#f5f8fc', minHeight: '100vh' }}>
@@ -55,18 +56,32 @@ export default function App() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10, marginBottom: 12 }}>
-            <KpiCard label="Revenue MTD" value={kpis.revenueMtd} />
-            <KpiCard label="Open AR" value={kpis.openAR} />
-            <KpiCard label="Open AP" value={kpis.openAP} />
-            <KpiCard label="Cash Balance" value={kpis.cashBalance} />
-            <KpiCard label="Gross Margin %" value={kpis.grossMarginPct} />
-            <KpiCard label="MRR" value={kpis.mrr} />
+            {isCashFlowMode ? (
+              <>
+                <KpiCard label="Cash Balance" value={kpis.cashBalance} />
+                <KpiCard label="Open AR" value={kpis.openAR} />
+                <KpiCard label="Open AP" value={kpis.openAP} />
+              </>
+            ) : (
+              <>
+                <KpiCard label="Revenue MTD" value={kpis.revenueMtd} />
+                <KpiCard label="Open AR" value={kpis.openAR} />
+                <KpiCard label="Open AP" value={kpis.openAP} />
+                <KpiCard label="Cash Balance" value={kpis.cashBalance} />
+                <KpiCard label="Gross Margin %" value={kpis.grossMarginPct} />
+                <KpiCard label="MRR" value={kpis.mrr} />
+              </>
+            )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <SimpleSeriesTable title="Revenue Trend" rows={revenue} columns={['date', 'revenue', 'cogs', 'grossMargin']} />
+          {isCashFlowMode ? (
             <SimpleSeriesTable title="Cash Flow (Base/Upside/Downside)" rows={cashFlow} columns={['date', 'inflows', 'outflows', 'base', 'upside', 'downside']} />
-          </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <SimpleSeriesTable title="Revenue Trend" rows={revenue} columns={['date', 'revenue', 'cogs', 'grossMargin']} />
+              <SimpleSeriesTable title="Cash Flow (Base/Upside/Downside)" rows={cashFlow} columns={['date', 'inflows', 'outflows', 'base', 'upside', 'downside']} />
+            </div>
+          )}
 
           {breakEvenDate ? (
             <div style={{ marginTop: 12, padding: 12, borderRadius: 8, background: '#fff7ed', border: '1px solid #fed7aa' }}>
