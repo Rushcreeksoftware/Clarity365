@@ -1,4 +1,77 @@
 body {
   margin: 0;
+  background: #f5f8fc;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.clr-wrap {
+  padding: 14px;
+}
+
+.clr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.clr-actions button {
+  border: 1px solid #c5d2e0;
+  border-radius: 6px;
+  padding: 6px 10px;
   background: #ffffff;
+  cursor: pointer;
+}
+
+.clr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.clr-card {
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.clr-kpi-label {
+  color: #51606f;
+  font-size: 12px;
+}
+
+.clr-kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.clr-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.clr-panel {
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.clr-panel h3 {
+  margin-top: 0;
+}
+
+.clr-panel table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.clr-panel th,
+.clr-panel td {
+  text-align: left;
+  padding: 6px 4px;
+  border-bottom: 1px solid #f1f4f8;
 }
