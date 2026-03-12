@@ -1,6 +1,6 @@
 page 50257 "CLR Setup Wizard"
 {
-    PageType = Card;
+    PageType = NavigatePage;
     SourceTable = "CLR Data Provider Setup";
     ApplicationArea = All;
     UsageCategory = Administration;
