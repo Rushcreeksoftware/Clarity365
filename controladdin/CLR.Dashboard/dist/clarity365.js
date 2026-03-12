@@ -56,8 +56,11 @@
       '<div class="clr-wrap">' +
       '  <h2>Clarity365 Dashboard (' + val(state.mode) + ')</h2>' +
       '  <div class="clr-actions">' +
-      '    <button id="clr-filter-30">Last 30 Days</button>' +
-      '    <button id="clr-filter-ytd">Year To Date</button>' +
+      '    <select id="clr-range"><option value="last-30-days">Last 30 Days</option><option value="year-to-date" selected>Year To Date</option><option value="last-12-months">Last 12 Months</option></select>' +
+      '    <input id="clr-asof" type="date" />' +
+      '    <input id="clr-glfilter" placeholder="GL Filter (e.g. 4*)" />' +
+      '    <input id="clr-dimcode" placeholder="Dimension Code" />' +
+      '    <button id="clr-apply-filter">Apply Filters</button>' +
       '    <button id="clr-base">Base</button>' +
       '    <button id="clr-upside">Upside</button>' +
       '    <button id="clr-downside">Downside</button>' +
@@ -79,8 +82,14 @@
       '  </div>' +
       '</div>';
 
-    document.getElementById('clr-filter-30').onclick = function () { invoke('FilterChanged', { range: 'last-30-days' }); };
-    document.getElementById('clr-filter-ytd').onclick = function () { invoke('FilterChanged', { range: 'year-to-date' }); };
+    document.getElementById('clr-apply-filter').onclick = function () {
+      invoke('FilterChanged', {
+        range: document.getElementById('clr-range').value || 'year-to-date',
+        asOfDate: document.getElementById('clr-asof').value || '',
+        glFilter: document.getElementById('clr-glfilter').value || '',
+        dimensionCode: document.getElementById('clr-dimcode').value || ''
+      });
+    };
     document.getElementById('clr-base').onclick = function () { invoke('ScenarioRequested', 'BASE'); };
     document.getElementById('clr-upside').onclick = function () { invoke('ScenarioRequested', 'UPSIDE'); };
     document.getElementById('clr-downside').onclick = function () { invoke('ScenarioRequested', 'DOWNSIDE'); };

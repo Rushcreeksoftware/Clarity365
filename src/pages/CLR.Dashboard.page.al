@@ -73,8 +73,10 @@ page 50250 "CLR Dashboard"
                 end;
 
                 trigger ExportRequested(ExportType: Text)
+                var
+                    ExportMgt: Codeunit "CLR Export Mgmt";
                 begin
-                    Message('Clarity export requested: %1', ExportType);
+                    ExportMgt.ExportDashboard(ExportType, CurrentFilterJson, CurrentScenarioCode);
                 end;
             }
         }

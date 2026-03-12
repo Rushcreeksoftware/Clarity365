@@ -38,6 +38,7 @@ permissionset 50390 "CLR Admin"
         codeunit "CLR Provider Factory" = X,
         codeunit "CLR Module Detector" = X,
         codeunit "CLR BI Engine" = X,
+        codeunit "CLR Export Mgmt" = X,
         codeunit "CLR Cf Forecast Engine" = X,
         codeunit "CLR Cf Scenario Mgmt" = X,
         codeunit "CLR Dashboard View Mgmt" = X,

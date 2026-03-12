@@ -32,6 +32,7 @@ permissionset 50391 "CLR User"
         page "CLR CF Projection API" = X,
         page "CLR Module Status API" = X,
         codeunit "CLR BI Engine" = X,
+        codeunit "CLR Export Mgmt" = X,
         codeunit "CLR Cf Forecast Engine" = X,
         codeunit "CLR Dashboard View Mgmt" = X;
 }
