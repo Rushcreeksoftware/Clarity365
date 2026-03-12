@@ -14,9 +14,15 @@ page 50250 "CLR Dashboard"
                 ApplicationArea = All;
 
                 trigger ControlAddInReady()
+                var
+                    ViewMgt: Codeunit "CLR Dashboard View Mgmt";
+                    LoadedFilterJson: Text;
                 begin
                     CurrentScenarioCode := 'BASE';
                     CurrentFilterJson := '';
+                    if ViewMgt.TryBuildFilterPayload('DEFAULT', LoadedFilterJson) then
+                        CurrentFilterJson := LoadedFilterJson;
+
                     RefreshDashboard();
                     CurrPage.Dashboard.SetMode('bi');
                 end;
