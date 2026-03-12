@@ -78,6 +78,11 @@ page 50250 "CLR Dashboard"
                     RefreshDashboard();
                 end;
 
+                trigger LoadViewRequested(ViewCode: Text)
+                begin
+                    ApplySavedView(CopyStr(ViewCode, 1, 20));
+                end;
+
                 trigger ExportRequested(ExportType: Text)
                 var
                     ExportMgt: Codeunit "CLR Export Mgmt";
@@ -99,24 +104,8 @@ page 50250 "CLR Dashboard"
                 Image = GetSourceDoc;
 
                 trigger OnAction()
-                var
-                    ViewMgt: Codeunit "CLR Dashboard View Mgmt";
-                    DashboardView: Record "CLR Dashboard View";
-                    DashboardViewList: Page "CLR Dashboard View List";
-                    LoadedFilterJson: Text;
                 begin
-                    DashboardViewList.LookupMode(true);
-                    DashboardViewList.SetTableView(DashboardView);
-
-                    if DashboardViewList.RunModal() <> Action::LookupOK then
-                        exit;
-
-                    DashboardViewList.GetRecord(DashboardView);
-                    if not ViewMgt.TryBuildFilterPayload(DashboardView.Code, LoadedFilterJson) then
-                        Error('Saved view %1 does not contain any filters.', DashboardView.Code);
-
-                    CurrentFilterJson := LoadedFilterJson;
-                    RefreshDashboard();
+                    SelectAndApplySavedView();
                 end;
             }
 
@@ -139,5 +128,35 @@ page 50250 "CLR Dashboard"
         BiEngine: Codeunit "CLR BI Engine";
     begin
         CurrPage.Dashboard.SendData(BiEngine.BuildPayloadJsonWithContext(CurrentFilterJson, CurrentScenarioCode));
+    end;
+
+    local procedure SelectAndApplySavedView()
+    var
+        DashboardView: Record "CLR Dashboard View";
+        DashboardViewList: Page "CLR Dashboard View List";
+    begin
+        DashboardViewList.LookupMode(true);
+        DashboardViewList.SetTableView(DashboardView);
+
+        if DashboardViewList.RunModal() <> Action::LookupOK then
+            exit;
+
+        DashboardViewList.GetRecord(DashboardView);
+        ApplySavedView(DashboardView.Code);
+    end;
+
+    local procedure ApplySavedView(ViewCode: Code[20])
+    var
+        ViewMgt: Codeunit "CLR Dashboard View Mgmt";
+        LoadedFilterJson: Text;
+    begin
+        if ViewCode = '' then
+            exit;
+
+        if not ViewMgt.TryBuildFilterPayload(ViewCode, LoadedFilterJson) then
+            Error('Saved view %1 does not contain any filters.', ViewCode);
+
+        CurrentFilterJson := LoadedFilterJson;
+        RefreshDashboard();
     end;
 }

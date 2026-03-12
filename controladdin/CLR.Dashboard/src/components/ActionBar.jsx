@@ -6,6 +6,7 @@ export default function ActionBar() {
   const [asOfDate, setAsOfDate] = useState('');
   const [glFilter, setGlFilter] = useState('');
   const [dimensionCode, setDimensionCode] = useState('');
+  const [viewCode, setViewCode] = useState('DEFAULT');
 
   const applyFilters = () => {
     BC.sendToBC('FilterChanged', {
@@ -31,6 +32,8 @@ export default function ActionBar() {
       <button onClick={() => BC.sendToBC('ScenarioRequested', 'UPSIDE')}>Upside Scenario</button>
       <button onClick={() => BC.sendToBC('ScenarioRequested', 'DOWNSIDE')}>Downside Scenario</button>
       <button onClick={() => BC.sendToBC('SaveViewRequested', { code: 'DEFAULT', description: 'Default View' })}>Save View</button>
+      <input placeholder="View Code" value={viewCode} onChange={(e) => setViewCode(e.target.value)} />
+      <button onClick={() => BC.sendToBC('LoadViewRequested', viewCode || 'DEFAULT')}>Load View</button>
       <button onClick={() => BC.sendToBC('ExportRequested', 'excel')}>Export Excel</button>
       <button onClick={() => BC.sendToBC('ExportRequested', 'pdf')}>Export PDF</button>
       <button onClick={() => BC.sendToBC('SetupRequested', '')}>Setup Wizard</button>

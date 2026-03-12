@@ -65,6 +65,8 @@
       '    <button id="clr-upside">Upside</button>' +
       '    <button id="clr-downside">Downside</button>' +
       '    <button id="clr-save-view">Save View</button>' +
+      '    <input id="clr-viewcode" placeholder="View Code" value="DEFAULT" />' +
+      '    <button id="clr-load-view">Load View</button>' +
       '    <button id="clr-export">Export Excel</button>' +
       '    <button id="clr-export-pdf">Export PDF</button>' +
       '    <button id="clr-setup">Setup Wizard</button>' +
@@ -95,6 +97,7 @@
     document.getElementById('clr-upside').onclick = function () { invoke('ScenarioRequested', 'UPSIDE'); };
     document.getElementById('clr-downside').onclick = function () { invoke('ScenarioRequested', 'DOWNSIDE'); };
     document.getElementById('clr-save-view').onclick = function () { invoke('SaveViewRequested', { code: 'DEFAULT', description: 'Default View' }); };
+    document.getElementById('clr-load-view').onclick = function () { invoke('LoadViewRequested', document.getElementById('clr-viewcode').value || 'DEFAULT'); };
     document.getElementById('clr-export').onclick = function () { invoke('ExportRequested', 'excel'); };
     document.getElementById('clr-export-pdf').onclick = function () { invoke('ExportRequested', 'pdf'); };
     document.getElementById('clr-setup').onclick = function () { invoke('SetupRequested', ''); };

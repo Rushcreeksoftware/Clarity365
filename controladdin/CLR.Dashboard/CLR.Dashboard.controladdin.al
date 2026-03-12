@@ -17,6 +17,7 @@ controladdin "CLR Dashboard"
     event FilterChanged(FilterJson: Text);
     event ScenarioRequested(ScenarioCode: Text);
     event SaveViewRequested(ViewJson: Text);
+    event LoadViewRequested(ViewCode: Text);
     event ExportRequested(ExportType: Text);
     event SetupRequested();
 }

@@ -66,7 +66,7 @@ codeunit 50309 "CLR Export Mgmt"
                 end;
             'pdf':
                 begin
-                    ExportAsTextSummary(FilterJson, ScenarioCode, OutputFileName);
+                    ExportAsPdfSummaryReport(ExportLog, OutputFileName);
                     MarkExportCompleted(ExportLog, OutputFileName, BuildSummaryPreview(FilterJson, ScenarioCode));
                 end;
             else
@@ -92,22 +92,23 @@ codeunit 50309 "CLR Export Mgmt"
                     OutputFileName);
     end;
 
-        local procedure ExportAsTextSummary(FilterJson: Text; ScenarioCode: Code[20]; var OutputFileName: Text[100])
+    local procedure ExportAsPdfSummaryReport(var ExportLog: Record "CLR Export Log"; var OutputFileName: Text[100])
     var
+        FilteredExportLog: Record "CLR Export Log";
         TempBlob: Codeunit "Temp Blob";
         OutStr: OutStream;
         InStr: InStream;
-        SummaryText: Text;
+        ExportRecordRef: RecordRef;
     begin
-        SummaryText := BuildSummaryPreview(FilterJson, ScenarioCode);
+        FilteredExportLog.SetRange("Entry No.", ExportLog."Entry No.");
+        ExportRecordRef.GetTable(FilteredExportLog);
 
-        TempBlob.CreateOutStream(OutStr, TextEncoding::UTF8);
-        OutStr.WriteText(SummaryText);
+        TempBlob.CreateOutStream(OutStr);
+        Report.SaveAs(Report::"CLR Dashboard Summary", '', ReportFormat::Pdf, OutStr, ExportRecordRef);
 
-        TempBlob.CreateInStream(InStr, TextEncoding::UTF8);
-                OutputFileName := CopyStr(StrSubstNo('clarity365-dashboard-export-%1.txt', Format(Today(), 0, 9)), 1, MaxStrLen(OutputFileName));
-        DownloadFromStream(InStr, 'Clarity365 Dashboard Export', '', 'Text File (*.txt)|*.txt',
-                    OutputFileName);
+        TempBlob.CreateInStream(InStr);
+        OutputFileName := CopyStr(StrSubstNo('clarity365-dashboard-export-%1.pdf', Format(Today(), 0, 9)), 1, MaxStrLen(OutputFileName));
+        DownloadFromStream(InStr, 'Clarity365 Dashboard PDF Export', '', 'PDF File (*.pdf)|*.pdf', OutputFileName);
     end;
 
     local procedure ComposeCsvLine(Metric: Text; Value: Text): Text

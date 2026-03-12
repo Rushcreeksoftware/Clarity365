@@ -1,6 +1,5 @@
 report 50380 "CLR Dashboard Summary"
 {
-    ProcessingOnly = true;
     UsageCategory = ReportsAndAnalysis;
     ApplicationArea = All;
     Caption = 'Clarity Dashboard Summary';
@@ -9,6 +8,7 @@ report 50380 "CLR Dashboard Summary"
     {
         dataitem(ExportLog; "CLR Export Log")
         {
+            DataItemTableView = sorting("Entry No.") order(descending);
             column(EntryNo; "Entry No.") { }
             column(ExportedAt; "Exported At") { }
             column(UserId; "User ID") { }
