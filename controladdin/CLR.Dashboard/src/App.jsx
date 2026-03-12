@@ -27,6 +27,11 @@ export default function App() {
   const cashFlow = payload?.cashFlow || [];
   const setupCompleted = payload?.setupCompleted !== false;
   const breakEvenDate = cashFlow.find((row) => Number(row?.base || 0) < 0)?.date || '';
+  const activeModules = (payload?.activeModules || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const hasRecur365 = payload?.hasRecur365 === true;
 
   return (
     <div style={{ fontFamily: 'Segoe UI, sans-serif', padding: 16, background: '#f5f8fc', minHeight: '100vh' }}>
@@ -34,6 +39,20 @@ export default function App() {
       {setupCompleted ? (
         <>
           <ActionBar mode={mode} />
+
+          <div style={{ marginBottom: 12, padding: 10, borderRadius: 8, border: '1px solid #d9e2ec', background: '#ffffff' }}>
+            <div style={{ fontSize: 12, color: '#51606f', marginBottom: 6 }}>Active Modules</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {activeModules.map((m) => (
+                <span key={m} style={{ background: '#eaf2ff', border: '1px solid #c7dcff', borderRadius: 999, padding: '2px 8px', fontSize: 12 }}>
+                  {m}
+                </span>
+              ))}
+              <span style={{ background: hasRecur365 ? '#ecfdf3' : '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 999, padding: '2px 8px', fontSize: 12 }}>
+                Recur365: {hasRecur365 ? 'Installed' : 'Not Installed'}
+              </span>
+            </div>
+          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10, marginBottom: 12 }}>
             <KpiCard label="Revenue MTD" value={kpis.revenueMtd} />

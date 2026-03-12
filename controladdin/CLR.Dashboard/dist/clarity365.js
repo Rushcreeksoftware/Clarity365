@@ -52,6 +52,8 @@
     var revenue = p.revenue || [];
     var cashFlow = p.cashFlow || [];
     var setupCompleted = p.setupCompleted !== false;
+    var activeModules = (p.activeModules || '').split(',').map(function (x) { return (x || '').trim(); }).filter(function (x) { return !!x; });
+    var hasRecur365 = p.hasRecur365 === true;
     var breakEvenDate = '';
     for (var i = 0; i < cashFlow.length; i++) {
       if (Number(cashFlow[i].base || 0) < 0) {
@@ -75,6 +77,11 @@
       return;
     }
 
+    var moduleBadges = activeModules.map(function (m) {
+      return '<span style="background:#eaf2ff;border:1px solid #c7dcff;border-radius:999px;padding:2px 8px;font-size:12px;">' + val(m) + '</span>';
+    }).join('');
+    moduleBadges += '<span style="background:' + (hasRecur365 ? '#ecfdf3' : '#f3f4f6') + ';border:1px solid #d1d5db;border-radius:999px;padding:2px 8px;font-size:12px;">Recur365: ' + (hasRecur365 ? 'Installed' : 'Not Installed') + '</span>';
+
     root.innerHTML = '' +
       '<div class="clr-wrap">' +
       '  <h2>Clarity365 Dashboard (' + val(state.mode) + ')</h2>' +
@@ -95,6 +102,10 @@
       '    <button id="clr-export">Export Excel</button>' +
       '    <button id="clr-export-pdf">Export PDF</button>' +
       '    <button id="clr-setup">Setup Wizard</button>' +
+      '  </div>' +
+      '  <div class="clr-panel" style="margin-bottom:12px;">' +
+      '    <div style="font-size:12px;color:#51606f;margin-bottom:6px;">Active Modules</div>' +
+      '    <div style="display:flex;gap:6px;flex-wrap:wrap;">' + moduleBadges + '</div>' +
       '  </div>' +
       '  <div class="clr-grid">' +
            kpiCard('Revenue MTD', k.revenueMtd) +
