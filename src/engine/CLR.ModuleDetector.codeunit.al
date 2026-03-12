@@ -24,7 +24,9 @@ codeunit 50303 "CLR Module Detector"
         ServiceLedgerEntry: Record "Service Ledger Entry";
         EmployeeLedgerEntry: Record "Employee Ledger Entry";
         ProductionOrder: Record "Production Order";
+        WarehouseEntry: Record "Warehouse Entry";
         ModuleCsv: Text;
+        ShowWarehouseModule: Boolean;
     begin
         EnsureSetup(Setup);
 
@@ -43,6 +45,9 @@ codeunit 50303 "CLR Module Detector"
         ProductionOrder.Reset();
         Setup."Show Manufacturing Module" := not ProductionOrder.IsEmpty();
 
+        WarehouseEntry.Reset();
+        ShowWarehouseModule := not WarehouseEntry.IsEmpty();
+
         Setup."Show Purchasing Module" := true;
         Setup.Modify(true);
 
@@ -57,6 +62,8 @@ codeunit 50303 "CLR Module Detector"
             ModuleCsv := ModuleCsv + ',HR';
         if Setup."Show Manufacturing Module" then
             ModuleCsv := ModuleCsv + ',Manufacturing';
+        if ShowWarehouseModule then
+            ModuleCsv := ModuleCsv + ',Warehouse';
 
         if IsRecur365Installed() then
             exit(ModuleCsv + ',Recur365');
