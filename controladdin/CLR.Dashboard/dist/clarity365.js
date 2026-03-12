@@ -66,6 +66,7 @@
       '    <button id="clr-downside">Downside</button>' +
       '    <button id="clr-save-view">Save View</button>' +
       '    <button id="clr-export">Export Excel</button>' +
+      '    <button id="clr-export-pdf">Export PDF</button>' +
       '    <button id="clr-setup">Setup Wizard</button>' +
       '  </div>' +
       '  <div class="clr-grid">' +
@@ -95,6 +96,7 @@
     document.getElementById('clr-downside').onclick = function () { invoke('ScenarioRequested', 'DOWNSIDE'); };
     document.getElementById('clr-save-view').onclick = function () { invoke('SaveViewRequested', { code: 'DEFAULT', description: 'Default View' }); };
     document.getElementById('clr-export').onclick = function () { invoke('ExportRequested', 'excel'); };
+    document.getElementById('clr-export-pdf').onclick = function () { invoke('ExportRequested', 'pdf'); };
     document.getElementById('clr-setup').onclick = function () { invoke('SetupRequested', ''); };
   }
 

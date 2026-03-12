@@ -32,6 +32,7 @@ export default function ActionBar() {
       <button onClick={() => BC.sendToBC('ScenarioRequested', 'DOWNSIDE')}>Downside Scenario</button>
       <button onClick={() => BC.sendToBC('SaveViewRequested', { code: 'DEFAULT', description: 'Default View' })}>Save View</button>
       <button onClick={() => BC.sendToBC('ExportRequested', 'excel')}>Export Excel</button>
+      <button onClick={() => BC.sendToBC('ExportRequested', 'pdf')}>Export PDF</button>
       <button onClick={() => BC.sendToBC('SetupRequested', '')}>Setup Wizard</button>
     </div>
   );

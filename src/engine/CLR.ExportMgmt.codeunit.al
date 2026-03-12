@@ -1,5 +1,54 @@
 codeunit 50309 "CLR Export Mgmt"
 {
+    procedure BuildKpiCsvPreview(FilterJson: Text; ScenarioCode: Code[20]): Text
+    var
+        BiEngine: Codeunit "CLR BI Engine";
+        Payload: Text;
+        RootObj: JsonObject;
+        KpisToken: JsonToken;
+        KpisObj: JsonObject;
+        CsvText: Text;
+        NewLine: Text;
+    begin
+        Payload := BiEngine.BuildPayloadJsonWithContext(FilterJson, ScenarioCode);
+        if not RootObj.ReadFrom(Payload) then
+            Error('Unable to parse dashboard payload for export.');
+
+        if not RootObj.Get('kpis', KpisToken) then
+            Error('Payload did not include KPI data.');
+
+        KpisObj := KpisToken.AsObject();
+        NewLine := GetNewLine();
+
+        CsvText := 'Metric,Value' + NewLine;
+        CsvText += ComposeCsvLine('Revenue MTD', GetJsonValueText(KpisObj, 'revenueMtd')) + NewLine;
+        CsvText += ComposeCsvLine('Revenue YTD', GetJsonValueText(KpisObj, 'revenueYtd')) + NewLine;
+        CsvText += ComposeCsvLine('Open AR', GetJsonValueText(KpisObj, 'openAR')) + NewLine;
+        CsvText += ComposeCsvLine('Open AP', GetJsonValueText(KpisObj, 'openAP')) + NewLine;
+        CsvText += ComposeCsvLine('Cash Balance', GetJsonValueText(KpisObj, 'cashBalance')) + NewLine;
+        CsvText += ComposeCsvLine('Gross Margin %', GetJsonValueText(KpisObj, 'grossMarginPct')) + NewLine;
+        CsvText += ComposeCsvLine('MRR', GetJsonValueText(KpisObj, 'mrr')) + NewLine;
+        CsvText += ComposeCsvLine('MRR Trend', GetJsonValueText(KpisObj, 'mrrTrend'));
+
+        exit(CsvText);
+    end;
+
+    procedure BuildSummaryPreview(FilterJson: Text; ScenarioCode: Code[20]): Text
+    var
+        BiEngine: Codeunit "CLR BI Engine";
+        SummaryText: Text;
+        NewLine: Text;
+    begin
+        NewLine := GetNewLine();
+        SummaryText := 'Clarity365 Dashboard Export Summary' + NewLine;
+        SummaryText += StrSubstNo('Generated At: %1', Format(CurrentDateTime(), 0, 9)) + NewLine;
+        SummaryText += StrSubstNo('Scenario: %1', ScenarioCode) + NewLine;
+        SummaryText += NewLine;
+        SummaryText += 'Payload JSON:' + NewLine;
+        SummaryText += BiEngine.BuildPayloadJsonWithContext(FilterJson, ScenarioCode);
+        exit(SummaryText);
+    end;
+
     procedure ExportDashboard(ExportType: Text; FilterJson: Text; ScenarioCode: Code[20])
     var
         ExportKind: Text;
@@ -17,35 +66,15 @@ codeunit 50309 "CLR Export Mgmt"
 
     local procedure ExportAsCsv(FilterJson: Text; ScenarioCode: Code[20])
     var
-        BiEngine: Codeunit "CLR BI Engine";
         TempBlob: Codeunit "Temp Blob";
         OutStr: OutStream;
         InStr: InStream;
-        Payload: Text;
-        RootObj: JsonObject;
-        KpisToken: JsonToken;
-        KpisObj: JsonObject;
+        CsvText: Text;
     begin
-        Payload := BiEngine.BuildPayloadJsonWithContext(FilterJson, ScenarioCode);
-        if not RootObj.ReadFrom(Payload) then
-            Error('Unable to parse dashboard payload for export.');
-
-        if not RootObj.Get('kpis', KpisToken) then
-            Error('Payload did not include KPI data.');
-
-        KpisObj := KpisToken.AsObject();
+        CsvText := BuildKpiCsvPreview(FilterJson, ScenarioCode);
 
         TempBlob.CreateOutStream(OutStr, TextEncoding::UTF8);
-        OutStr.WriteText('Metric,Value');
-        OutStr.WriteText('');
-        WriteCsvLine(OutStr, 'Revenue MTD', GetJsonValueText(KpisObj, 'revenueMtd'));
-        WriteCsvLine(OutStr, 'Revenue YTD', GetJsonValueText(KpisObj, 'revenueYtd'));
-        WriteCsvLine(OutStr, 'Open AR', GetJsonValueText(KpisObj, 'openAR'));
-        WriteCsvLine(OutStr, 'Open AP', GetJsonValueText(KpisObj, 'openAP'));
-        WriteCsvLine(OutStr, 'Cash Balance', GetJsonValueText(KpisObj, 'cashBalance'));
-        WriteCsvLine(OutStr, 'Gross Margin %', GetJsonValueText(KpisObj, 'grossMarginPct'));
-        WriteCsvLine(OutStr, 'MRR', GetJsonValueText(KpisObj, 'mrr'));
-        WriteCsvLine(OutStr, 'MRR Trend', GetJsonValueText(KpisObj, 'mrrTrend'));
+        OutStr.WriteText(CsvText);
 
         TempBlob.CreateInStream(InStr, TextEncoding::UTF8);
         DownloadFromStream(InStr, 'Clarity365 KPI Export', '', 'CSV File (*.csv)|*.csv',
@@ -54,30 +83,24 @@ codeunit 50309 "CLR Export Mgmt"
 
     local procedure ExportAsTextSummary(FilterJson: Text; ScenarioCode: Code[20])
     var
-        BiEngine: Codeunit "CLR BI Engine";
         TempBlob: Codeunit "Temp Blob";
         OutStr: OutStream;
         InStr: InStream;
-        Payload: Text;
+        SummaryText: Text;
     begin
-        Payload := BiEngine.BuildPayloadJsonWithContext(FilterJson, ScenarioCode);
+        SummaryText := BuildSummaryPreview(FilterJson, ScenarioCode);
 
         TempBlob.CreateOutStream(OutStr, TextEncoding::UTF8);
-        OutStr.WriteText('Clarity365 Dashboard Export Summary');
-        OutStr.WriteText(StrSubstNo('Generated At: %1', Format(CurrentDateTime(), 0, 9)));
-        OutStr.WriteText(StrSubstNo('Scenario: %1', ScenarioCode));
-        OutStr.WriteText('');
-        OutStr.WriteText('Payload JSON:');
-        OutStr.WriteText(Payload);
+        OutStr.WriteText(SummaryText);
 
         TempBlob.CreateInStream(InStr, TextEncoding::UTF8);
         DownloadFromStream(InStr, 'Clarity365 Dashboard Export', '', 'Text File (*.txt)|*.txt',
           StrSubstNo('clarity365-dashboard-export-%1.txt', Format(Today(), 0, 9)));
     end;
 
-    local procedure WriteCsvLine(var OutStr: OutStream; Metric: Text; Value: Text)
+    local procedure ComposeCsvLine(Metric: Text; Value: Text): Text
     begin
-        OutStr.WriteText(StrSubstNo('"%1","%2"', EscapeCsv(Metric), EscapeCsv(Value)));
+        exit(StrSubstNo('"%1","%2"', EscapeCsv(Metric), EscapeCsv(Value)));
     end;
 
     local procedure EscapeCsv(InputText: Text): Text
@@ -93,5 +116,13 @@ codeunit 50309 "CLR Export Mgmt"
             exit('');
 
         exit(Token.AsValue().AsText());
+    end;
+
+    local procedure GetNewLine(): Text
+    var
+        NewLineChar: Char;
+    begin
+        NewLineChar := 10;
+        exit(Format(NewLineChar));
     end;
 }
