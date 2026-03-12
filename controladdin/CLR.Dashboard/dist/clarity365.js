@@ -51,6 +51,22 @@
     var k = p.kpis || {};
     var revenue = p.revenue || [];
     var cashFlow = p.cashFlow || [];
+    var setupCompleted = p.setupCompleted !== false;
+
+    if (!setupCompleted) {
+      root.innerHTML = '' +
+        '<div class="clr-wrap">' +
+        '  <h2>Clarity365 Dashboard (' + val(state.mode) + ')</h2>' +
+        '  <div class="clr-panel">' +
+        '    <h3>Setup Required</h3>' +
+        '    <div>Complete the Clarity365 setup wizard to map accounts, dimensions, and forecast defaults before using the dashboard.</div>' +
+        '    <div style="margin-top:12px;"><button id="clr-setup">Open Setup Wizard</button></div>' +
+        '  </div>' +
+        '</div>';
+
+      document.getElementById('clr-setup').onclick = function () { invoke('SetupRequested', ''); };
+      return;
+    }
 
     root.innerHTML = '' +
       '<div class="clr-wrap">' +

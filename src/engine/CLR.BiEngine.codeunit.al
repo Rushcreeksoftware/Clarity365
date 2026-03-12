@@ -129,6 +129,7 @@ codeunit 50304 "CLR BI Engine"
 
         Payload.Add('activeModules', Detector.GetActiveModulesCsv());
         Payload.Add('hasRecur365', Detector.IsRecur365Installed());
+        Payload.Add('setupCompleted', Setup."Setup Completed");
         Payload.Add('currencyCode', GetCurrencyCode());
         Payload.Add('reportingDate', Format(AsOfDate, 0, 9));
 

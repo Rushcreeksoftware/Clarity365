@@ -50,6 +50,11 @@ page 50250 "CLR Dashboard"
                     end;
 
                     CurrentScenarioCode := CopyStr(UpperCase(ScenarioCode), 1, 20);
+
+                    if (CurrentScenarioCode in ['UPSIDE', 'DOWNSIDE']) and (not ScenarioHasProjectionData('BASE')) then
+                        if ScenarioHeader.Get('BASE') then
+                            ForecastEngine.BuildScenario(ScenarioHeader.Code);
+
                     if ScenarioHeader.Get(CurrentScenarioCode) then
                         ForecastEngine.BuildScenario(ScenarioHeader.Code);
 
@@ -158,5 +163,13 @@ page 50250 "CLR Dashboard"
 
         CurrentFilterJson := LoadedFilterJson;
         RefreshDashboard();
+    end;
+
+    local procedure ScenarioHasProjectionData(ScenarioCode: Code[20]): Boolean
+    var
+        ProjectionLine: Record "CLR CF Projection Line";
+    begin
+        ProjectionLine.SetRange("Scenario Code", ScenarioCode);
+        exit(not ProjectionLine.IsEmpty());
     end;
 }
