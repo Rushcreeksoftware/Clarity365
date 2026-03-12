@@ -52,19 +52,29 @@ codeunit 50309 "CLR Export Mgmt"
     procedure ExportDashboard(ExportType: Text; FilterJson: Text; ScenarioCode: Code[20])
     var
         ExportKind: Text;
+        ExportLog: Record "CLR Export Log";
+        OutputFileName: Text[100];
     begin
         ExportKind := LowerCase(Trim(ExportType));
+
+        InitExportLog(ExportLog, ExportKind, FilterJson, ScenarioCode);
         case ExportKind of
             'excel':
-                ExportAsCsv(FilterJson, ScenarioCode);
+                begin
+                    ExportAsCsv(FilterJson, ScenarioCode, OutputFileName);
+                    MarkExportCompleted(ExportLog, OutputFileName, BuildKpiCsvPreview(FilterJson, ScenarioCode));
+                end;
             'pdf':
-                ExportAsTextSummary(FilterJson, ScenarioCode);
+                begin
+                    ExportAsTextSummary(FilterJson, ScenarioCode, OutputFileName);
+                    MarkExportCompleted(ExportLog, OutputFileName, BuildSummaryPreview(FilterJson, ScenarioCode));
+                end;
             else
                 Error('Unsupported export type: %1', ExportType);
         end;
     end;
 
-    local procedure ExportAsCsv(FilterJson: Text; ScenarioCode: Code[20])
+    local procedure ExportAsCsv(FilterJson: Text; ScenarioCode: Code[20]; var OutputFileName: Text[100])
     var
         TempBlob: Codeunit "Temp Blob";
         OutStr: OutStream;
@@ -77,11 +87,12 @@ codeunit 50309 "CLR Export Mgmt"
         OutStr.WriteText(CsvText);
 
         TempBlob.CreateInStream(InStr, TextEncoding::UTF8);
+                OutputFileName := CopyStr(StrSubstNo('clarity365-kpis-%1.csv', Format(Today(), 0, 9)), 1, MaxStrLen(OutputFileName));
         DownloadFromStream(InStr, 'Clarity365 KPI Export', '', 'CSV File (*.csv)|*.csv',
-          StrSubstNo('clarity365-kpis-%1.csv', Format(Today(), 0, 9)));
+                    OutputFileName);
     end;
 
-    local procedure ExportAsTextSummary(FilterJson: Text; ScenarioCode: Code[20])
+        local procedure ExportAsTextSummary(FilterJson: Text; ScenarioCode: Code[20]; var OutputFileName: Text[100])
     var
         TempBlob: Codeunit "Temp Blob";
         OutStr: OutStream;
@@ -94,8 +105,9 @@ codeunit 50309 "CLR Export Mgmt"
         OutStr.WriteText(SummaryText);
 
         TempBlob.CreateInStream(InStr, TextEncoding::UTF8);
+                OutputFileName := CopyStr(StrSubstNo('clarity365-dashboard-export-%1.txt', Format(Today(), 0, 9)), 1, MaxStrLen(OutputFileName));
         DownloadFromStream(InStr, 'Clarity365 Dashboard Export', '', 'Text File (*.txt)|*.txt',
-          StrSubstNo('clarity365-dashboard-export-%1.txt', Format(Today(), 0, 9)));
+                    OutputFileName);
     end;
 
     local procedure ComposeCsvLine(Metric: Text; Value: Text): Text
@@ -124,5 +136,25 @@ codeunit 50309 "CLR Export Mgmt"
     begin
         NewLineChar := 10;
         exit(Format(NewLineChar));
+    end;
+
+    local procedure InitExportLog(var ExportLog: Record "CLR Export Log"; ExportType: Text; FilterJson: Text; ScenarioCode: Code[20])
+    begin
+        ExportLog.Init();
+        ExportLog."Exported At" := CurrentDateTime();
+        ExportLog."User ID" := CopyStr(UserId(), 1, MaxStrLen(ExportLog."User ID"));
+        ExportLog."Export Type" := CopyStr(UpperCase(ExportType), 1, MaxStrLen(ExportLog."Export Type"));
+        ExportLog."Scenario Code" := CopyStr(UpperCase(ScenarioCode), 1, MaxStrLen(ExportLog."Scenario Code"));
+        ExportLog."Filter JSON" := CopyStr(FilterJson, 1, MaxStrLen(ExportLog."Filter JSON"));
+        ExportLog.Status := 'STARTED';
+        ExportLog.Insert(true);
+    end;
+
+    local procedure MarkExportCompleted(var ExportLog: Record "CLR Export Log"; FileName: Text[100]; SummaryText: Text)
+    begin
+        ExportLog."File Name" := FileName;
+        ExportLog.Status := 'COMPLETED';
+        ExportLog."Summary Text" := CopyStr(SummaryText, 1, MaxStrLen(ExportLog."Summary Text"));
+        ExportLog.Modify(true);
     end;
 }

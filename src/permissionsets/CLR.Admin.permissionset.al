@@ -13,6 +13,7 @@ permissionset 50390 "CLR Admin"
         tabledata "CLR CF Projection Line" = RIMD,
         tabledata "CLR Manual CF Entry" = RIMD,
         tabledata "CLR Error Log" = RIMD,
+        tabledata "CLR Export Log" = RIMD,
         table "CLR Data Provider Setup" = X,
         table "CLR BI Metric Buffer" = X,
         table "CLR Dashboard View" = X,
@@ -22,6 +23,7 @@ permissionset 50390 "CLR Admin"
         table "CLR CF Projection Line" = X,
         table "CLR Manual CF Entry" = X,
         table "CLR Error Log" = X,
+        table "CLR Export Log" = X,
         page "CLR Dashboard" = X,
         page "CLR CF Scenario List" = X,
         page "CLR CF Scenario Card" = X,
@@ -30,6 +32,7 @@ permissionset 50390 "CLR Admin"
         page "CLR Dashboard View List" = X,
         page "CLR Setup" = X,
         page "CLR Setup Wizard" = X,
+        page "CLR Export Log List" = X,
         page "CLR BI Metrics API" = X,
         page "CLR CF Projection API" = X,
         page "CLR Module Status API" = X,
@@ -43,5 +46,6 @@ permissionset 50390 "CLR Admin"
         codeunit "CLR Cf Scenario Mgmt" = X,
         codeunit "CLR Dashboard View Mgmt" = X,
         codeunit "CLR Setup Wizard Mgmt" = X,
+        report "CLR Dashboard Summary" = X,
         codeunit "CLR Install" = X;
 }

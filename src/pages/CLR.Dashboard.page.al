@@ -82,6 +82,20 @@ page 50250 "CLR Dashboard"
         }
     }
 
+    actions
+    {
+        area(Processing)
+        {
+            action(OpenExportLog)
+            {
+                ApplicationArea = All;
+                Caption = 'Export Log';
+                Image = Log;
+                RunObject = page "CLR Export Log List";
+            }
+        }
+    }
+
     var
         CurrentFilterJson: Text;
         CurrentScenarioCode: Code[20];
