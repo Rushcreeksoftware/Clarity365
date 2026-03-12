@@ -52,6 +52,13 @@
     var revenue = p.revenue || [];
     var cashFlow = p.cashFlow || [];
     var setupCompleted = p.setupCompleted !== false;
+    var breakEvenDate = '';
+    for (var i = 0; i < cashFlow.length; i++) {
+      if (Number(cashFlow[i].base || 0) < 0) {
+        breakEvenDate = cashFlow[i].date || '';
+        break;
+      }
+    }
 
     if (!setupCompleted) {
       root.innerHTML = '' +
@@ -99,6 +106,7 @@
            table('Revenue Trend', revenue, ['date', 'revenue', 'cogs', 'grossMargin']) +
            table('Cash Flow', cashFlow, ['date', 'inflows', 'outflows', 'base', 'upside', 'downside']) +
       '  </div>' +
+       (breakEvenDate ? '  <div class="clr-panel" style="margin-top:12px; background:#fff7ed; border:1px solid #fed7aa;">Break-even alert: base scenario cash turns negative on ' + breakEvenDate + '.</div>' : '') +
       '</div>';
 
     document.getElementById('clr-apply-filter').onclick = function () {

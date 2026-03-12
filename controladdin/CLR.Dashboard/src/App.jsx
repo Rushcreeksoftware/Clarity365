@@ -26,6 +26,7 @@ export default function App() {
   const revenue = payload?.revenue || [];
   const cashFlow = payload?.cashFlow || [];
   const setupCompleted = payload?.setupCompleted !== false;
+  const breakEvenDate = cashFlow.find((row) => Number(row?.base || 0) < 0)?.date || '';
 
   return (
     <div style={{ fontFamily: 'Segoe UI, sans-serif', padding: 16, background: '#f5f8fc', minHeight: '100vh' }}>
@@ -47,6 +48,12 @@ export default function App() {
             <SimpleSeriesTable title="Revenue Trend" rows={revenue} columns={['date', 'revenue', 'cogs', 'grossMargin']} />
             <SimpleSeriesTable title="Cash Flow (Base/Upside/Downside)" rows={cashFlow} columns={['date', 'inflows', 'outflows', 'base', 'upside', 'downside']} />
           </div>
+
+          {breakEvenDate ? (
+            <div style={{ marginTop: 12, padding: 12, borderRadius: 8, background: '#fff7ed', border: '1px solid #fed7aa' }}>
+              Break-even alert: base scenario cash turns negative on {breakEvenDate}.
+            </div>
+          ) : null}
         </>
       ) : (
         <SetupPrompt />
