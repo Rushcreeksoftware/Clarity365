@@ -94,4 +94,54 @@ codeunit 50342 "CLR CfEngineTests"
         if ProjectionLine.IsEmpty() then
             Error('Expected one-off payment line from scenario assumption.');
     end;
+
+    [Test]
+    procedure CreateOrUpdateScenarioRejectsInvalidDates()
+    var
+        Library: Codeunit "CLR LibraryClarity365";
+        ScenarioMgt: Codeunit "CLR Cf Scenario Mgmt";
+    begin
+        // GIVEN
+        Library.EnsureSetupDefaults();
+
+        // WHEN / THEN
+        asserterror ScenarioMgt.CreateOrUpdateScenario(
+            'UTBADDATE',
+            'Invalid Dates',
+            Today(),
+            CalcDate('<-1M>', Today()),
+            Enum::"CLR Scenario Status"::Draft,
+            false);
+    end;
+
+    [Test]
+    procedure CreateOrUpdateScenarioKeepsSingleBaseScenario()
+    var
+        Library: Codeunit "CLR LibraryClarity365";
+        ScenarioMgt: Codeunit "CLR Cf Scenario Mgmt";
+        BaseScenario: Record "CLR CF Scenario Header";
+        NewBaseScenario: Record "CLR CF Scenario Header";
+    begin
+        // GIVEN
+        Library.EnsureSetupDefaults();
+        ScenarioMgt.EnsureBaseScenario();
+
+        // WHEN
+        ScenarioMgt.CreateOrUpdateScenario(
+            'UTBASE2',
+            'Replacement Base',
+            Today(),
+            CalcDate('<6M>', Today()),
+            Enum::"CLR Scenario Status"::Active,
+            true);
+
+        // THEN
+        BaseScenario.Get('BASE');
+        if BaseScenario."Base Scenario" then
+            Error('Expected original BASE scenario to be unset as base.');
+
+        NewBaseScenario.Get('UTBASE2');
+        if not NewBaseScenario."Base Scenario" then
+            Error('Expected UTBASE2 to be the new base scenario.');
+    end;
 }
