@@ -240,10 +240,15 @@ codeunit 50300 "CLR BC Native Provider" implements "CLR IDataProvider"
     var
         VendorLedgerEntry: Record "Vendor Ledger Entry";
         PurchaseEntryCount: Integer;
+        PurchaseSpend: Decimal;
     begin
         VendorLedgerEntry.Reset();
         VendorLedgerEntry.SetRange("Posting Date", FromDate, ToDate);
         PurchaseEntryCount := VendorLedgerEntry.Count();
+        VendorLedgerEntry.CalcSums(Amount);
+        PurchaseSpend := Abs(VendorLedgerEntry.Amount);
+
+        InsertMetric(Buffer, 'PURCHASE_SPEND', FromDate, ToDate, PurchaseSpend, 'Purchasing spend', '', Enum::"CLR Metric Type"::Amount);
         InsertMetric(Buffer, 'PURCHASE_ENTRY_COUNT', FromDate, ToDate, PurchaseEntryCount, 'Purchasing entries', '', Enum::"CLR Metric Type"::Count);
     end;
 
@@ -251,10 +256,18 @@ codeunit 50300 "CLR BC Native Provider" implements "CLR IDataProvider"
     var
         ValueEntry: Record "Value Entry";
         MfgEntryCount: Integer;
+        MaterialCost: Decimal;
+        OutputValue: Decimal;
     begin
         ValueEntry.Reset();
         ValueEntry.SetRange("Posting Date", FromDate, ToDate);
         MfgEntryCount := ValueEntry.Count();
+        ValueEntry.CalcSums("Cost Amount (Actual)", "Sales Amount (Actual)");
+        MaterialCost := Abs(ValueEntry."Cost Amount (Actual)");
+        OutputValue := Abs(ValueEntry."Sales Amount (Actual)");
+
+        InsertMetric(Buffer, 'MFG_MATERIAL_COST', FromDate, ToDate, MaterialCost, 'Manufacturing material cost', '', Enum::"CLR Metric Type"::Amount);
+        InsertMetric(Buffer, 'MFG_OUTPUT_VALUE', FromDate, ToDate, OutputValue, 'Manufacturing output value', '', Enum::"CLR Metric Type"::Amount);
         InsertMetric(Buffer, 'MFG_ENTRY_COUNT', FromDate, ToDate, MfgEntryCount, 'Manufacturing/value entries', '', Enum::"CLR Metric Type"::Count);
     end;
 

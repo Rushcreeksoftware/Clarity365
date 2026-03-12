@@ -6,8 +6,13 @@ codeunit 50304 "CLR BI Engine"
         Setup: Record "CLR Data Provider Setup";
         Provider: Interface "CLR IDataProvider";
         MetricBuffer: Record "CLR BI Metric Buffer" temporary;
+        TempMetricBuffer: Record "CLR BI Metric Buffer" temporary;
         FromDate: Date;
         AsOfDate: Date;
+        MonthStart: Date;
+        MonthEnd: Date;
+        PreviousMrrAmount: Decimal;
+        MrrTrendPct: Decimal;
         JsonText: Text;
         RevenueAmount: Decimal;
         CogsAmount: Decimal;
@@ -122,13 +127,18 @@ codeunit 50304 "CLR BI Engine"
         Kpis.Add('cashBalance', CashBalance);
         Kpis.Add('grossMarginPct', GrossMarginPct);
         Kpis.Add('mrr', MrrAmount);
-        Kpis.Add('mrrTrend', 0);
+        MonthStart := CalcDate('<CM-1M>', AsOfDate);
+        MonthEnd := CalcDate('<CM-1D>', AsOfDate);
+        TempMetricBuffer.DeleteAll();
+        Provider.GetMRRMetrics(MonthStart, MonthEnd, TempMetricBuffer);
+        PreviousMrrAmount := GetMetricAmount(TempMetricBuffer, 'MRR');
+        MrrTrendPct := CalculateTrendPct(PreviousMrrAmount, MrrAmount);
+        Kpis.Add('mrrTrend', MrrTrendPct);
 
-        RevenueObj.Add('date', Format(CalcDate('<CM>', AsOfDate), 0, 9));
-        RevenueObj.Add('revenue', RevenueAmount);
-        RevenueObj.Add('cogs', CogsAmount);
-        RevenueObj.Add('grossMargin', GrossMarginAmount);
-        Revenue.Add(RevenueObj);
+        BuildRevenueTrend(Provider, Setup, Revenue);
+        BuildPayrollTrend(Provider, Setup, Payroll);
+        BuildMrrTrend(Provider, MrrSeries, AsOfDate);
+        BuildCashFlowArray(CashFlow, AsOfDate);
 
         Payload.Add('kpis', Kpis);
         Payload.Add('revenue', Revenue);
@@ -282,17 +292,19 @@ codeunit 50304 "CLR BI Engine"
     local procedure BuildMfgArrayFromMetric(var MetricBuffer: Record "CLR BI Metric Buffer" temporary; var MfgArray: JsonArray; MetricCode: Code[50])
     var
         MfgObj: JsonObject;
-        MetricValue: Decimal;
+        OutputValue: Decimal;
+        MaterialCost: Decimal;
     begin
-        MetricValue := GetMetricAmount(MetricBuffer, MetricCode);
-        if MetricValue = 0 then
+        OutputValue := GetMetricAmount(MetricBuffer, 'MFG_OUTPUT_VALUE');
+        MaterialCost := GetMetricAmount(MetricBuffer, 'MFG_MATERIAL_COST');
+        if (OutputValue = 0) and (MaterialCost = 0) then
             exit;
 
         MfgObj.Add('date', Format(CalcDate('<CM>', Today()), 0, 9));
-        MfgObj.Add('materialCost', 0);
+        MfgObj.Add('materialCost', MaterialCost);
         MfgObj.Add('capacityCost', 0);
-        MfgObj.Add('outputValue', MetricValue);
-        MfgObj.Add('variance', 0);
+        MfgObj.Add('outputValue', OutputValue);
+        MfgObj.Add('variance', OutputValue - MaterialCost);
         MfgArray.Add(MfgObj);
     end;
 
@@ -314,13 +326,15 @@ codeunit 50304 "CLR BI Engine"
     var
         PurchasingObj: JsonObject;
         EntryCount: Decimal;
+        SpendAmount: Decimal;
     begin
         EntryCount := GetMetricAmount(MetricBuffer, 'PURCHASE_ENTRY_COUNT');
-        if EntryCount = 0 then
+        SpendAmount := GetMetricAmount(MetricBuffer, 'PURCHASE_SPEND');
+        if (EntryCount = 0) and (SpendAmount = 0) then
             exit;
 
         PurchasingObj.Add('date', Format(CalcDate('<CM>', Today()), 0, 9));
-        PurchasingObj.Add('spend', EntryCount);
+        PurchasingObj.Add('spend', SpendAmount);
         PurchasingObj.Add('vendorCount', EntryCount);
         PurchasingArray.Add(PurchasingObj);
     end;
@@ -335,5 +349,118 @@ codeunit 50304 "CLR BI Engine"
         MrrObj.Add('date', Format(CalcDate('<CM>', AsOfDate), 0, 9));
         MrrObj.Add('amount', MrrAmount);
         MrrArray.Add(MrrObj);
+    end;
+
+    local procedure BuildRevenueTrend(Provider: Interface "CLR IDataProvider"; Setup: Record "CLR Data Provider Setup"; var RevenueArray: JsonArray)
+    var
+        MonthOffset: Integer;
+        PeriodStart: Date;
+        PeriodEnd: Date;
+        MetricBuffer: Record "CLR BI Metric Buffer" temporary;
+        RevenueObj: JsonObject;
+        RevenueValue: Decimal;
+        CogsValue: Decimal;
+        GrossMarginValue: Decimal;
+    begin
+        for MonthOffset := 5 downto 0 do begin
+            PeriodStart := CalcDate(StrSubstNo('<CM-%1M>', MonthOffset), Today());
+            PeriodEnd := CalcDate('<CM+1M-1D>', PeriodStart);
+
+            MetricBuffer.DeleteAll();
+            Provider.GetGLMetrics(PeriodStart, PeriodEnd, Setup."Revenue GL Account Filter", MetricBuffer);
+            RevenueValue := GetMetricAmount(MetricBuffer, 'REVENUE');
+            CogsValue := GetMetricAmount(MetricBuffer, 'COGS');
+            GrossMarginValue := GetMetricAmount(MetricBuffer, 'GROSS_MARGIN');
+
+            RevenueObj.Add('date', Format(PeriodStart, 0, 9));
+            RevenueObj.Add('revenue', RevenueValue);
+            RevenueObj.Add('cogs', CogsValue);
+            RevenueObj.Add('grossMargin', GrossMarginValue);
+            RevenueArray.Add(RevenueObj);
+            Clear(RevenueObj);
+        end;
+    end;
+
+    local procedure BuildPayrollTrend(Provider: Interface "CLR IDataProvider"; Setup: Record "CLR Data Provider Setup"; var PayrollArray: JsonArray)
+    var
+        MonthOffset: Integer;
+        PeriodStart: Date;
+        PeriodEnd: Date;
+        MetricBuffer: Record "CLR BI Metric Buffer" temporary;
+        PayrollObj: JsonObject;
+        PayrollAmount: Decimal;
+    begin
+        for MonthOffset := 5 downto 0 do begin
+            PeriodStart := CalcDate(StrSubstNo('<CM-%1M>', MonthOffset), Today());
+            PeriodEnd := CalcDate('<CM+1M-1D>', PeriodStart);
+
+            MetricBuffer.DeleteAll();
+            Provider.GetPayrollMetrics(PeriodStart, PeriodEnd, MetricBuffer);
+            PayrollAmount := GetMetricAmount(MetricBuffer, 'PAYROLL_TOTAL');
+
+            PayrollObj.Add('date', Format(PeriodStart, 0, 9));
+            PayrollObj.Add('amount', PayrollAmount);
+            PayrollArray.Add(PayrollObj);
+            Clear(PayrollObj);
+        end;
+    end;
+
+    local procedure BuildMrrTrend(Provider: Interface "CLR IDataProvider"; var MrrArray: JsonArray; AsOfDate: Date)
+    var
+        MonthOffset: Integer;
+        PeriodStart: Date;
+        PeriodEnd: Date;
+        MetricBuffer: Record "CLR BI Metric Buffer" temporary;
+        MrrObj: JsonObject;
+        MrrValue: Decimal;
+    begin
+        for MonthOffset := 5 downto 0 do begin
+            PeriodStart := CalcDate(StrSubstNo('<CM-%1M>', MonthOffset), AsOfDate);
+            PeriodEnd := CalcDate('<CM+1M-1D>', PeriodStart);
+
+            MetricBuffer.DeleteAll();
+            Provider.GetMRRMetrics(PeriodStart, PeriodEnd, MetricBuffer);
+            MrrValue := GetMetricAmount(MetricBuffer, 'MRR');
+
+            MrrObj.Add('date', Format(PeriodStart, 0, 9));
+            MrrObj.Add('amount', MrrValue);
+            MrrArray.Add(MrrObj);
+            Clear(MrrObj);
+        end;
+    end;
+
+    local procedure BuildCashFlowArray(var CashFlowArray: JsonArray; AsOfDate: Date)
+    var
+        ProjectionLine: Record "CLR CF Projection Line";
+        CashFlowObj: JsonObject;
+        RowCount: Integer;
+    begin
+        ProjectionLine.Reset();
+        ProjectionLine.SetRange("Scenario Code", 'BASE');
+        ProjectionLine.SetFilter("Projection Date", '>=%1', AsOfDate);
+        ProjectionLine.SetCurrentKey("Projection Date", "Scenario Code");
+        if ProjectionLine.FindSet() then
+            repeat
+                CashFlowObj.Add('date', Format(ProjectionLine."Projection Date", 0, 9));
+                CashFlowObj.Add('inflows', ProjectionLine.Amount);
+                CashFlowObj.Add('outflows', 0);
+                CashFlowObj.Add('base', ProjectionLine."Cumulative Cash");
+                CashFlowObj.Add('upside', 0);
+                CashFlowObj.Add('downside', 0);
+                CashFlowArray.Add(CashFlowObj);
+                Clear(CashFlowObj);
+
+                RowCount += 1;
+                if RowCount >= 6 then
+                    exit;
+            until ProjectionLine.Next() = 0;
+    end;
+
+    local procedure CalculateTrendPct(PreviousValue: Decimal; CurrentValue: Decimal): Decimal
+    begin
+        if PreviousValue = 0 then
+            exit(0);
+
+        exit(Round(((CurrentValue - PreviousValue) / PreviousValue) * 100, 0.01));
     end;
 }
