@@ -29,6 +29,9 @@ codeunit 50308 "CLR Setup Wizard Mgmt"
                 Setup."Payroll GL Account Filter" := CopyStr(GLAccount."No.", 1, MaxStrLen(Setup."Payroll GL Account Filter"));
         end;
 
+        if Setup."CapEx GL Account Filter" = '' then
+            Setup."CapEx GL Account Filter" := '8*';
+
         if Setup."Primary Dimension Code" = '' then begin
             Dimension.Reset();
             if Dimension.FindFirst() then

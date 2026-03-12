@@ -25,7 +25,6 @@ codeunit 50305 "CLR Cf Forecast Engine"
         PaymentDays: Integer;
         ForecastMonths: Integer;
         ApOpenAmount: Decimal;
-        Sign: Integer;
     begin
         if not Scenario.Get(ScenarioCode) then
             exit;
