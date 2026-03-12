@@ -5,7 +5,7 @@ pageextension 50260 "CLR Finance RC Ext" extends "Finance Manager Role Center"
 {
     actions
     {
-        addlast(Sections)
+        addfirst(Sections)
         {
             group(CLRFinNavGroup)
             {

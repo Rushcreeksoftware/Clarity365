@@ -6,7 +6,7 @@ pageextension 50259 "CLR Business Manager RC Ext" extends "Business Manager Role
 {
     actions
     {
-        addlast(Sections)
+        addfirst(Sections)
         {
             group(CLRBMNavGroup)
             {
