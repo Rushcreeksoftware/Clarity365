@@ -1,0 +1,12 @@
+.alpackages/
+.snapshots/
+.vscode/.alcache/
+.vscode/launch.json.user
+_appinspect/
+*.app
+*.zip
+*.pdb
+*.log
+*.tmp
+Thumbs.db
+.DS_Store

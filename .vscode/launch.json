@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Your Sandbox",
+      "type": "al",
+      "request": "launch",
+      "server": "https://businesscentral.dynamics.com",
+      "serverInstance": "BC",
+      "authentication": "AAD",
+      "startupObjectType": "Page",
+      "startupObjectId": 22,
+      "breakOnError": true,
+      "launchBrowser": true,
+      "enableLongRunningSqlStatements": true,
+      "enableSqlInformationDebugger": true
+    }
+  ]
+}
