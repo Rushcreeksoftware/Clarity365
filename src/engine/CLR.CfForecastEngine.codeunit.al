@@ -16,15 +16,22 @@ codeunit 50305 "CLR Cf Forecast Engine"
         OpeningCash: Decimal;
         InvoiceRevenueBase: Decimal;
         InvoiceRevenue: Decimal;
+        SubscriptionRevenue: Decimal;
         ArCollection: Decimal;
         ApPayment: Decimal;
         PayrollAmount: Decimal;
         GrowthRatePct: Decimal;
         ChurnRatePct: Decimal;
+        ArWriteOffRatePct: Decimal;
         CollectionDays: Integer;
         PaymentDays: Integer;
+        PayrollAdditionAmount: Decimal;
+        HiringCount: Decimal;
+        AverageSalary: Decimal;
+        CurrentPayrollAmount: Decimal;
         ForecastMonths: Integer;
         ApOpenAmount: Decimal;
+        HasSubscriptionData: Boolean;
     begin
         if not Scenario.Get(ScenarioCode) then
             exit;
@@ -37,6 +44,7 @@ codeunit 50305 "CLR Cf Forecast Engine"
         end;
 
         Provider := ProviderFactory.GetProvider();
+        HasSubscriptionData := Provider.HasSubscriptionData();
 
         ProjectionLine.SetRange("Scenario Code", ScenarioCode);
         ProjectionLine.SetRange("Is Actual", false);
@@ -73,8 +81,12 @@ codeunit 50305 "CLR Cf Forecast Engine"
 
             GrowthRatePct := GetAssumptionValue(ScenarioCode, Enum::"CLR CF Category"::RevenueGrowthRate, MonthDate, MonthEndDate);
             ChurnRatePct := GetAssumptionValue(ScenarioCode, Enum::"CLR CF Category"::ChurnRate, MonthDate, MonthEndDate);
+            ArWriteOffRatePct := GetAssumptionValue(ScenarioCode, Enum::"CLR CF Category"::ARWriteOffRate, MonthDate, MonthEndDate);
             CollectionDays := Round(GetAssumptionValue(ScenarioCode, Enum::"CLR CF Category"::CollectionDays, MonthDate, MonthEndDate), 1, '=');
             PaymentDays := Round(GetAssumptionValue(ScenarioCode, Enum::"CLR CF Category"::PaymentDays, MonthDate, MonthEndDate), 1, '=');
+            PayrollAdditionAmount := GetAssumptionValue(ScenarioCode, Enum::"CLR CF Category"::PayrollAddition, MonthDate, MonthEndDate);
+            HiringCount := GetAssumptionValue(ScenarioCode, Enum::"CLR CF Category"::HiringCount, MonthDate, MonthEndDate);
+            AverageSalary := GetAssumptionValue(ScenarioCode, Enum::"CLR CF Category"::AverageSalary, MonthDate, MonthEndDate);
 
             if CollectionDays = 0 then
                 CollectionDays := Setup."Default AR Collection Days";
@@ -82,13 +94,26 @@ codeunit 50305 "CLR Cf Forecast Engine"
                 PaymentDays := Setup."Default AP Payment Days";
 
             InvoiceRevenue := ApplyGrowthAndChurn(InvoiceRevenueBase, GrowthRatePct, ChurnRatePct);
-            ArCollection := ApplyCollectionFactor(InvoiceRevenue, CollectionDays);
-            ApPayment := ApplyPaymentFactor(ApOpenAmount / ForecastMonths, PaymentDays);
+            SubscriptionRevenue := 0;
+            if HasSubscriptionData then begin
+                MetricBuffer.DeleteAll();
+                Provider.GetMRRMetrics(MonthDate, MonthEndDate, MetricBuffer);
+                SubscriptionRevenue := ApplyGrowthAndChurn(GetMetricAmount(MetricBuffer, 'MRR'), GrowthRatePct, ChurnRatePct);
+            end;
 
+            ArCollection := ApplyCollectionFactor(InvoiceRevenue, CollectionDays);
+            if ArWriteOffRatePct <> 0 then
+                ArCollection := Round(ArCollection * (1 - (ArWriteOffRatePct / 100)), 0.01);
+            ApPayment := ApplyPaymentFactor(ApOpenAmount / ForecastMonths, PaymentDays);
+            CurrentPayrollAmount := PayrollAmount + PayrollAdditionAmount + (HiringCount * AverageSalary);
+
+            InsertProjectionLine(ScenarioCode, MonthDate, Enum::"CLR CF Line Category"::SubscriptionRevenue, SubscriptionRevenue, CumulativeCash, true, 'Projected subscription revenue');
             InsertProjectionLine(ScenarioCode, MonthDate, Enum::"CLR CF Line Category"::InvoiceRevenue, InvoiceRevenue, CumulativeCash, true, 'Projected invoice revenue');
             InsertProjectionLine(ScenarioCode, MonthDate, Enum::"CLR CF Line Category"::ARCollection, ArCollection, CumulativeCash, true, 'Projected AR collection');
             InsertProjectionLine(ScenarioCode, MonthDate, Enum::"CLR CF Line Category"::APPayment, ApPayment, CumulativeCash, false, 'Projected AP payment');
-            InsertProjectionLine(ScenarioCode, MonthDate, Enum::"CLR CF Line Category"::Payroll, PayrollAmount, CumulativeCash, false, 'Projected payroll');
+            InsertProjectionLine(ScenarioCode, MonthDate, Enum::"CLR CF Line Category"::Payroll, CurrentPayrollAmount, CumulativeCash, false, 'Projected payroll');
+
+            ApplyOneOffScenarioAssumptions(ScenarioCode, MonthDate, MonthEndDate, CumulativeCash);
 
             ManualEntry.Reset();
             ManualEntry.SetRange("Scenario Code", ScenarioCode);
@@ -225,5 +250,36 @@ codeunit 50305 "CLR Cf Forecast Engine"
         end;
 
         exit(MonthCount);
+    end;
+
+    local procedure ApplyOneOffScenarioAssumptions(ScenarioCode: Code[20]; MonthStartDate: Date; MonthEndDate: Date; var CumulativeCash: Decimal)
+    var
+        Assumption: Record "CLR CF Scenario Assumption";
+        AssumptionDate: Date;
+    begin
+        Assumption.SetRange("Scenario Code", ScenarioCode);
+        Assumption.SetFilter(Category, '%1|%2|%3',
+            Enum::"CLR CF Category"::CapExItem,
+            Enum::"CLR CF Category"::OneOffReceipt,
+            Enum::"CLR CF Category"::OneOffPayment);
+        Assumption.SetRange("Apply From", MonthStartDate, MonthEndDate);
+
+        if not Assumption.FindSet() then
+            exit;
+
+        repeat
+            AssumptionDate := Assumption."Apply From";
+            if AssumptionDate = 0D then
+                AssumptionDate := MonthStartDate;
+
+            case Assumption.Category of
+                Enum::"CLR CF Category"::CapExItem:
+                    InsertProjectionLine(ScenarioCode, AssumptionDate, Enum::"CLR CF Line Category"::CapEx, Abs(Assumption.Value), CumulativeCash, false, CopyStr(Assumption.Description, 1, 100));
+                Enum::"CLR CF Category"::OneOffReceipt:
+                    InsertProjectionLine(ScenarioCode, AssumptionDate, Enum::"CLR CF Line Category"::OneOffReceipt, Abs(Assumption.Value), CumulativeCash, true, CopyStr(Assumption.Description, 1, 100));
+                Enum::"CLR CF Category"::OneOffPayment:
+                    InsertProjectionLine(ScenarioCode, AssumptionDate, Enum::"CLR CF Line Category"::OneOffPayment, Abs(Assumption.Value), CumulativeCash, false, CopyStr(Assumption.Description, 1, 100));
+            end;
+        until Assumption.Next() = 0;
     end;
 }
