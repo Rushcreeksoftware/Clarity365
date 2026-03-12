@@ -39,6 +39,7 @@ codeunit 50305 "CLR Cf Forecast Engine"
         Provider := ProviderFactory.GetProvider();
 
         ProjectionLine.SetRange("Scenario Code", ScenarioCode);
+        ProjectionLine.SetRange("Is Actual", false);
         if not ProjectionLine.IsEmpty() then
             ProjectionLine.DeleteAll();
 
@@ -129,6 +130,11 @@ codeunit 50305 "CLR Cf Forecast Engine"
     begin
         if Amount = 0 then
             exit;
+
+        if ProjectionLine.Get(ScenarioCode, ProjectionDate, LineCategory) then begin
+            CumulativeCash := ProjectionLine."Cumulative Cash";
+            exit;
+        end;
 
         SignedAmount := Amount;
         if not IsInflow then
