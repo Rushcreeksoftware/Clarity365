@@ -57,7 +57,8 @@ page 50257 "CLR Setup Wizard"
                     WizardMgt: Codeunit "CLR Setup Wizard Mgmt";
                 begin
                     WizardMgt.CompleteSetup();
-                    CurrPage.Update(false);
+                    Page.Run(Page::"CLR Dashboard");
+                    CurrPage.Close();
                 end;
             }
         }

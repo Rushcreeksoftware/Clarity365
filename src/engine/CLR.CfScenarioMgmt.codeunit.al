@@ -18,4 +18,24 @@ codeunit 50306 "CLR Cf Scenario Mgmt"
         Scenario."Created Date" := Today();
         Scenario.Insert(true);
     end;
+
+    procedure EnsureScenarioPrerequisites(RequestedScenarioCode: Code[20])
+    var
+        ForecastEngine: Codeunit "CLR Cf Forecast Engine";
+    begin
+        if (UpperCase(RequestedScenarioCode) <> 'UPSIDE') and (UpperCase(RequestedScenarioCode) <> 'DOWNSIDE') then
+            exit;
+
+        EnsureBaseScenario();
+        if not ScenarioHasProjectionData('BASE') then
+            ForecastEngine.BuildScenario('BASE');
+    end;
+
+    procedure ScenarioHasProjectionData(ScenarioCode: Code[20]): Boolean
+    var
+        ProjectionLine: Record "CLR CF Projection Line";
+    begin
+        ProjectionLine.SetRange("Scenario Code", ScenarioCode);
+        exit(not ProjectionLine.IsEmpty());
+    end;
 }

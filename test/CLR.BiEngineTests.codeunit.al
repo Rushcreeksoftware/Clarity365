@@ -135,4 +135,34 @@ codeunit 50341 "CLR BiEngineTests"
         if not RootObj.Get('kpis', KpisToken) then
             Error('Expected KPI section in payload.');
     end;
+
+    [Test]
+    procedure BuildPayloadJsonIncludesSetupCompletedFlag()
+    var
+        Library: Codeunit "CLR LibraryClarity365";
+        BiEngine: Codeunit "CLR BI Engine";
+        Setup: Record "CLR Data Provider Setup";
+        Payload: Text;
+        RootObj: JsonObject;
+        Token: JsonToken;
+    begin
+        // GIVEN
+        Library.EnsureSetupDefaults();
+        Setup.Get('');
+        Setup."Setup Completed" := false;
+        Setup.Modify(true);
+
+        // WHEN
+        Payload := BiEngine.BuildPayloadJson();
+
+        // THEN
+        if not RootObj.ReadFrom(Payload) then
+            Error('Expected valid JSON payload.');
+
+        if not RootObj.Get('setupCompleted', Token) then
+            Error('Expected setupCompleted in payload.');
+
+        if Token.AsValue().AsBoolean() then
+            Error('Expected setupCompleted to reflect setup state.');
+    end;
 }
