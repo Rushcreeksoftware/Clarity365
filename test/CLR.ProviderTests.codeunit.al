@@ -133,4 +133,17 @@ codeunit 50344 "CLR ProviderTests"
         if DashboardView."Is Shared" then
             Error('Expected view to be marked unshared.');
     end;
+
+    [Test]
+    procedure DashboardViewMgmtCurrentUserCanAccessOwnView()
+    var
+        ViewMgt: Codeunit "CLR Dashboard View Mgmt";
+    begin
+        // GIVEN
+        ViewMgt.SaveView('UTACCESS', 'Access Test View');
+
+        // WHEN / THEN
+        if not ViewMgt.CanCurrentUserAccessView('UTACCESS') then
+            Error('Expected current user to access own view.');
+    end;
 }

@@ -156,6 +156,9 @@ page 50250 "CLR Dashboard"
         if ViewCode = '' then
             exit;
 
+        if not ViewMgt.CanCurrentUserAccessView(ViewCode) then
+            Error('You do not have access to saved view %1.', ViewCode);
+
         if not ViewMgt.TryBuildFilterPayload(ViewCode, LoadedFilterJson) then
             Error('Saved view %1 does not contain any filters.', ViewCode);
 

@@ -57,4 +57,5 @@ page 50255 "CLR Dashboard View List"
             }
         }
     }
+
 }

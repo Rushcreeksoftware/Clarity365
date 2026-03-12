@@ -62,10 +62,17 @@ codeunit 50307 "CLR Dashboard View Mgmt"
 
     procedure TryBuildFilterPayload(ViewCode: Code[20]; var FilterJson: Text): Boolean
     var
+        DashboardView: Record "CLR Dashboard View";
         DashboardViewFilter: Record "CLR Dashboard View Filter";
         FilterObject: JsonObject;
     begin
         FilterJson := '';
+        if not DashboardView.Get(ViewCode) then
+            exit(false);
+
+        if not CanUserAccessView(DashboardView) then
+            exit(false);
+
         DashboardViewFilter.SetRange("View Code", ViewCode);
         if not DashboardViewFilter.FindSet() then
             exit(false);
@@ -76,6 +83,16 @@ codeunit 50307 "CLR Dashboard View Mgmt"
 
         FilterObject.WriteTo(FilterJson);
         exit(true);
+    end;
+
+    procedure CanCurrentUserAccessView(ViewCode: Code[20]): Boolean
+    var
+        DashboardView: Record "CLR Dashboard View";
+    begin
+        if not DashboardView.Get(ViewCode) then
+            exit(false);
+
+        exit(CanUserAccessView(DashboardView));
     end;
 
     procedure SetViewShared(ViewCode: Code[20]; IsShared: Boolean)
@@ -107,5 +124,13 @@ codeunit 50307 "CLR Dashboard View Mgmt"
             JsonObj.Replace(PropertyName, PropertyValue)
         else
             JsonObj.Add(PropertyName, PropertyValue);
+    end;
+
+    local procedure CanUserAccessView(var DashboardView: Record "CLR Dashboard View"): Boolean
+    begin
+        if DashboardView."Is Shared" then
+            exit(true);
+
+        exit(DashboardView."User ID" = CopyStr(UserId(), 1, MaxStrLen(DashboardView."User ID")));
     end;
 }
