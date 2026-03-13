@@ -3,13 +3,21 @@ codeunit 50303 "CLR Module Detector"
     SingleInstance = true;
 
     var
+        InstalledApp: Record "NAV App Installed App";
         IsLoaded: Boolean;
         RecurInstalled: Boolean;
 
     procedure IsRecur365Installed(): Boolean
+    var
+        RecurAppId: Guid;
     begin
         if not IsLoaded then begin
-            RecurInstalled := NavApp.IsInstalled('00000000-0000-0000-0000-000000000001');
+            if Evaluate(RecurAppId, '00000000-0000-0000-0000-000000000001') then begin
+                InstalledApp.Reset();
+                InstalledApp.SetRange("App ID", RecurAppId);
+                RecurInstalled := not InstalledApp.IsEmpty();
+            end else
+                RecurInstalled := false;
             IsLoaded := true;
         end;
 

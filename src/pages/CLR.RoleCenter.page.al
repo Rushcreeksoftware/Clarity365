@@ -3,7 +3,7 @@
 //          the dashboard, cash flow scenarios, saved views, and admin pages.
 // Called by: CLR Profile; also used when user switches Role to 'Clarity365'
 
-page 50258 "CLR Role Center"
+page 50261 "CLR Role Center"
 {
     PageType = RoleCenter;
     ApplicationArea = All;

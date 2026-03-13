@@ -265,9 +265,11 @@ codeunit 50300 "CLR BC Native Provider" implements "CLR IDataProvider"
     begin
         VendorLedgerEntry.Reset();
         VendorLedgerEntry.SetRange("Posting Date", FromDate, ToDate);
-        PurchaseEntryCount := VendorLedgerEntry.Count();
-        VendorLedgerEntry.CalcSums(Amount);
-        PurchaseSpend := Abs(VendorLedgerEntry.Amount);
+        if VendorLedgerEntry.FindSet() then
+            repeat
+                PurchaseEntryCount += 1;
+                PurchaseSpend += Abs(VendorLedgerEntry.Amount);
+            until VendorLedgerEntry.Next() = 0;
 
         InsertMetric(Buffer, 'PURCHASE_SPEND', FromDate, ToDate, PurchaseSpend, 'Purchasing spend', '', Enum::"CLR Metric Type"::Amount);
         InsertMetric(Buffer, 'PURCHASE_ENTRY_COUNT', FromDate, ToDate, PurchaseEntryCount, 'Purchasing entries', '', Enum::"CLR Metric Type"::Count);

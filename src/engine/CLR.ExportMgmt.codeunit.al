@@ -55,7 +55,7 @@ codeunit 50309 "CLR Export Mgmt"
         ExportLog: Record "CLR Export Log";
         OutputFileName: Text[100];
     begin
-        ExportKind := LowerCase(Trim(ExportType));
+        ExportKind := LowerCase(DelChr(ExportType, '<>', ' '));
 
         InitExportLog(ExportLog, ExportKind, FilterJson, ScenarioCode);
         case ExportKind of
