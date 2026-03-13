@@ -2,7 +2,7 @@
   "id": "8f965698-ee14-4217-814d-d2ee64195eac",
   "name": "Clarity365",
   "publisher": "Rush Creek Software Inc.",
-  "version": "1.0.0.0",
+  "version": "1.0.0.1",
   "brief": "Clarity365 self-service BI and cash flow forecasting for Dynamics 365 Business Central.",
   "description": "Clarity365 provides interactive BI dashboards, saved views, and multi-scenario cash flow forecasting for Microsoft Dynamics 365 Business Central.",
   "privacyStatement": "https://rushcreeksoftware.com/privacy",
