@@ -2,14 +2,14 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Your Sandbox",
+      "name": "Clarity365 cloud sandbox",
       "type": "al",
       "request": "launch",
       "environmentType": "Sandbox",
       "environmentName": "sandbox",
       "authentication": "AAD",
       "startupObjectType": "Page",
-      "startupObjectId": 22,
+      "startupObjectId": 50250,
       "breakOnError": true,
       "launchBrowser": true,
       "enableLongRunningSqlStatements": true,
